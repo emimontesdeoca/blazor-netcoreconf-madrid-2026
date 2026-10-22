@@ -1,0 +1,69 @@
+@* ---------------------------------------------------------------------------------------------
+   Panel de diagnóstico: renderizados por componente, llamadas a la API, canceladas y en curso.
+
+   Detalle importante: Diagnostico.Cambio se dispara DURANTE los renders de otros componentes.
+   Si aquí llamáramos a StateHasChanged en cada aviso, el panel se renderizaría cientos de veces por
+   segundo. Por eso se registra que hay cambios pendientes y un temporizador renderiza el panel
+   como máximo 4 veces por segundo, para limitar el coste de la instrumentación.
+   --------------------------------------------------------------------------------------------- *@
+@inject Diagnostico Diag
+@implements IDisposable
+
+<aside class="diag">
+    <header>
+        <strong>Diagnóstico</strong>
+        <button class="mini" @onclick="Diag.Reiniciar">Reiniciar</button>
+    </header>
+
+    <div class="kpis">
+        <div><span>@Diag.RendersTotales</span>renders</div>
+        <div><span>@Diag.LlamadasApi</span>llamadas API</div>
+        <div><span>@Diag.LlamadasCanceladas</span>canceladas</div>
+        <div><span>@Diag.EnVuelo</span>en curso</div>
+    </div>
+
+    @if (Diag.RendersPorComponente.Count > 0)
+    {
+        <table class="small">
+            @foreach (var kv in Diag.RendersPorComponente)
+            {
+                <tr><td>@kv.Key</td><td class="num">@kv.Value</td></tr>
+            }
+        </table>
+    }
+
+    @if (Diag.UltimasLlamadas.Count > 0)
+    {
+        <ul class="small llamadas">
+            @foreach (var llamada in Diag.UltimasLlamadas)
+            {
+                <li>@llamada</li>
+            }
+        </ul>
+    }
+</aside>
+
+@code {
+    private System.Threading.Timer? _timer;
+    private volatile bool _sucio;
+    private Action? _handler;
+
+    protected override void OnInitialized()
+    {
+        _handler = () => _sucio = true;
+        Diag.Cambio += _handler;
+
+        _timer = new System.Threading.Timer(_ =>
+        {
+            if (!_sucio) return;
+            _sucio = false;
+            _ = InvokeAsync(StateHasChanged);
+        }, null, dueTime: 250, period: 250);
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null) Diag.Cambio -= _handler;
+        _timer?.Dispose();
+    }
+}

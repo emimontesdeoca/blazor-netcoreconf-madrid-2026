@@ -1,0 +1,42 @@
+@* 🐢 LENTO
+   El padre pasa un RenderFragment además del Id: Blazor no puede omitir la actualización de parámetros.
+   Con el reloj del padre: una llamada a la API por segundo para
+   cargar el mismo pedido. Y si el usuario cambia de pedido rápido, la respuesta vieja puede
+   llegar después de la nueva y sustituir sus resultados. *@
+@inject PedidosApi Api
+@inject Diagnostico Diag
+@{ Diag.Render(nameof(DetallePedidoLento)); }
+
+<div class="detalle">
+    @if (_pedido is null)
+    {
+        <p class="muted">Cargando pedido #@PedidoId…</p>
+    }
+    else
+    {
+        <h3>Pedido #@_pedido.Id</h3>
+        <dl>
+            <dt>Cliente</dt><dd>@_pedido.Cliente</dd>
+            <dt>Producto</dt><dd>@_pedido.Producto × @_pedido.Cantidad</dd>
+            <dt>Importe</dt><dd>@_pedido.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</dd>
+            <dt>Fecha</dt><dd>@_pedido.Fecha.ToString("g", CultureInfo.GetCultureInfo("es-ES"))</dd>
+            <dt>Estado</dt><dd><span class="estado @_pedido.Estado.ToString().ToLowerInvariant()">@_pedido.Estado</span></dd>
+            <dt>Cargas</dt><dd><span class="renders">@_cargas</span></dd>
+        </dl>
+    }
+    <p class="small muted">@ChildContent</p>
+</div>
+
+@code {
+    [Parameter] public int PedidoId { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private Pedido? _pedido;
+    private int _cargas;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _cargas++;
+        _pedido = await Api.GetPedidoAsync(PedidoId);
+    }
+}

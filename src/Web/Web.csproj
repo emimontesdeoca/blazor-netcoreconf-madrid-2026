@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>BlazorLento.Web</RootNamespace>
+    <AssemblyName>BlazorLento.Web</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Sin paquetes: una Blazor Web App con render interactivo en el servidor no necesita ninguno. -->
+
+</Project>

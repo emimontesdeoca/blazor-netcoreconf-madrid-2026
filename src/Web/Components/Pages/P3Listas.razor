@@ -1,0 +1,33 @@
+@page "/listas"
+
+<PageTitle>3 · Listas extensas</PageTitle>
+
+<h1>3 · Listas extensas</h1>
+<p class="intro">
+    5.000 pedidos. El usuario ve unos 15 a la vez. Compara filas en el DOM, tiempo hasta los primeros datos y tamaño de cada carga.
+</p>
+
+<ModoSelector @bind-Rapido="_rapido"
+              DescripcionLento="El @@foreach genera las 5.000 filas y las recorre de nuevo en cada renderizado."
+              DescripcionRapido="<Virtualize> renderiza las filas visibles y algunas adicionales de margen. Al desplazarte se renderizan las siguientes." />
+
+@if (_rapido)
+{
+    <p class="barra">
+        <label><input type="checkbox" @bind="_bajoDemanda" /> Cargar bajo demanda (<code>ItemsProvider</code>): solicitar solo los pedidos necesarios</label>
+    </p>
+}
+
+@if (_rapido)
+{
+    <ListaRapida @key="_bajoDemanda" BajoDemanda="_bajoDemanda" />
+}
+else
+{
+    <ListaLenta />
+}
+
+@code {
+    private bool _rapido;
+    private bool _bajoDemanda;
+}

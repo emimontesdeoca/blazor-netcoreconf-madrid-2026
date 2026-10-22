@@ -1,0 +1,30 @@
+@* 🐢 LENTO: se suscribe a OnChange, aunque no muestra datos del estado compartido. *@
+@inject EstadoLento Estado
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(OfertasLentas)); }
+
+<div class="tarjeta ofertas">
+    <span class="titulo">🔥 Ofertas del día</span>
+    @foreach (var p in Pedidos.Take(3))
+    {
+        <button @onclick="() => Estado.AñadirAlCarrito(p.Id)">Añadir @p.Producto</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Pedido> Pedidos { get; set; } = [];
+
+    private Action? _handler;
+
+    protected override void OnInitialized()
+    {
+        _handler = () => InvokeAsync(StateHasChanged);
+        Estado.OnChange += _handler;
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null) Estado.OnChange -= _handler;
+    }
+}

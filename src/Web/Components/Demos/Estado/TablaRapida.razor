@@ -1,0 +1,54 @@
+@* ⚡ RÁPIDO
+   La misma tabla, suscrita SOLO a FiltroCambiado. Añadir al carrito no la toca.
+   Además cachea la lista filtrada: calcularla en la propiedad en cada render era otro coste escondido. *@
+@inject EstadoRapido Estado
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(TablaRapida)); }
+
+<div class="tarjeta tabla ok">
+    <span class="titulo">Pedidos (@_filtrados.Count)</span>
+    <div class="scroll corto">
+        <table class="pedidos">
+            <tbody>
+                @foreach (var p in _filtrados)
+                {
+                    <tr>
+                        <td>@p.Id</td>
+                        <td>@p.Cliente</td>
+                        <td>@p.Producto</td>
+                        <td class="num">@p.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</td>
+                        <td><span class="estado @p.Estado.ToString().ToLowerInvariant()">@p.Estado</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Pedido> Pedidos { get; set; } = [];
+
+    private IReadOnlyList<Pedido> _filtrados = [];
+    private Action? _handler;
+
+    protected override void OnInitialized()
+    {
+        _handler = () => InvokeAsync(() =>
+        {
+            Filtrar();
+            StateHasChanged();
+        });
+        Estado.FiltroCambiado += _handler;
+    }
+
+    protected override void OnParametersSet() => Filtrar();
+
+    private void Filtrar()
+        => _filtrados = Estado.Filtro is null ? Pedidos : Pedidos.Where(p => p.Estado == Estado.Filtro).ToList();
+
+    public void Dispose()
+    {
+        if (_handler is not null) Estado.FiltroCambiado -= _handler;
+    }
+}

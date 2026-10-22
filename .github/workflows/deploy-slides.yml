@@ -1,0 +1,38 @@
+name: Publish slides to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - slides/deck.html
+      - slides/assets/**
+      - .github/workflows/deploy-slides.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site/assets
+          cp slides/deck.html _site/index.html
+          cp -R slides/assets/. _site/assets/
+
+      - name: Publish to the pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: pages
+          publish_dir: ./_site

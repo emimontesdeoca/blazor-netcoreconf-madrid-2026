@@ -1,0 +1,20 @@
+@* 🐢 LENTO
+   Cada widget es independiente y "no sabe" que hay otros tres pidiendo lo mismo.
+   Cuatro widgets, cuatro GET /productos idénticos en el mismo instante. *@
+@inject PedidosApi Api
+@inject Diagnostico Diag
+@{ Diag.Render(nameof(WidgetLento)); }
+
+<div class="widget">
+    <span class="titulo">@Metrica.Titulo()</span>
+    <span class="valor">@(_productos is null ? "…" : Metrica.Calcular(_productos))</span>
+</div>
+
+@code {
+    [Parameter] public Metrica Metrica { get; set; }
+
+    private IReadOnlyList<Producto>? _productos;
+
+    protected override async Task OnInitializedAsync()
+        => _productos = await Api.GetProductosAsync();
+}

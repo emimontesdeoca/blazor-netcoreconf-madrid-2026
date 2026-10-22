@@ -1,0 +1,25 @@
+@* 🐢 LENTO: se suscribe a OnChange (todo el estado). Este sí necesita el carrito, así que no está mal... *@
+@inject EstadoLento Estado
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(CarritoLento)); }
+
+<div class="tarjeta carrito">
+    <span class="titulo">🛒 Carrito</span>
+    <span class="valor">@Estado.Carrito.Count</span>
+</div>
+
+@code {
+    private Action? _handler;
+
+    protected override void OnInitialized()
+    {
+        _handler = () => InvokeAsync(StateHasChanged);
+        Estado.OnChange += _handler;
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null) Estado.OnChange -= _handler;
+    }
+}

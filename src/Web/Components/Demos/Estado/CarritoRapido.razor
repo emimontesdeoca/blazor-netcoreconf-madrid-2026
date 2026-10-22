@@ -1,0 +1,25 @@
+@* ⚡ RÁPIDO: recibe notificaciones de CarritoCambiado, pero no de FiltroCambiado. *@
+@inject EstadoRapido Estado
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(CarritoRapido)); }
+
+<div class="tarjeta carrito ok">
+    <span class="titulo">🛒 Carrito</span>
+    <span class="valor">@Estado.Carrito.Count</span>
+</div>
+
+@code {
+    private Action? _handler;
+
+    protected override void OnInitialized()
+    {
+        _handler = () => InvokeAsync(StateHasChanged);
+        Estado.CarritoCambiado += _handler;
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null) Estado.CarritoCambiado -= _handler;
+    }
+}

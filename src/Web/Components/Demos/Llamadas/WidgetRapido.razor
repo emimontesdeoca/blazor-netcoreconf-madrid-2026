@@ -1,0 +1,35 @@
+@* ⚡ RÁPIDO
+   El widget no cambia casi nada: en vez de la API, usa PedidosApiCacheada, que comparte UNA tarea
+   entre todos los que piden lo mismo. Cuatro widgets, una llamada. El resto esperan a esa.
+   El token cancela mi espera si me destruyen, pero no la petición compartida. *@
+@inject PedidosApiCacheada Api
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(WidgetRapido)); }
+
+<div class="widget ok">
+    <span class="titulo">@Metrica.Titulo()</span>
+    <span class="valor">@(_productos is null ? "…" : Metrica.Calcular(_productos))</span>
+</div>
+
+@code {
+    [Parameter] public Metrica Metrica { get; set; }
+
+    private IReadOnlyList<Producto>? _productos;
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _productos = await Api.GetProductosAsync(_cts.Token);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

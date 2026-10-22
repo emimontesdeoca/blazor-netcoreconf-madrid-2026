@@ -1,0 +1,22 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.swp
+
+# Secrets / local config
+.env
+*.local.*
+appsettings.Development.json
+
+# MARP output
+slides/*.pptx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (si usas marp-cli en local)
+node_modules/

@@ -1,0 +1,64 @@
+@page "/llamadas"
+@implements IDisposable
+@inject Diagnostico Diag
+
+<PageTitle>4 · Consultas repetidas del mismo pedido</PageTitle>
+
+<h1>4 · Consultas repetidas del mismo pedido</h1>
+<p class="intro">
+    El reloj del padre se actualiza cada segundo. En la versión lenta, ese texto viaja dentro del detalle
+    y provoca otra consulta, aunque el pedido no cambie. Compara el contador de <b>llamadas API</b>.
+</p>
+
+<ModoSelector @bind-Rapido="_rapido" @bind-Rapido:after="ReiniciarEscenario"
+              DescripcionLento="La hora forma parte del detalle. Cada segundo cambia el contenido y el detalle vuelve a consultar el mismo pedido."
+              DescripcionRapido="La hora se muestra fuera del detalle. Este solo recibe el Id y no vuelve a consultar si no cambia." />
+
+<section>
+    <p class="barra">
+        <span>🕒 @_hora.ToString("HH:mm:ss")</span>
+        <label>Pedido:
+            <select @bind="_pedidoId">
+                @for (var id = 1; id <= 10; id++)
+                {
+                    <option value="@id">#@id</option>
+                }
+            </select>
+        </label>
+        <span class="small muted">(el reloj hace que el componente padre se renderice cada segundo)</span>
+    </p>
+    @if (_rapido)
+    {
+        <p class="small muted">Vista actualizada a las @_hora.ToString("HH:mm:ss")</p>
+        <DetallePedidoRapido PedidoId="_pedidoId" />
+    }
+    else
+    {
+        <DetallePedidoLento PedidoId="_pedidoId">
+            Vista actualizada a las @_hora.ToString("HH:mm:ss")
+        </DetallePedidoLento>
+    }
+</section>
+
+@code {
+    private bool _rapido;
+    private int _pedidoId = 1;
+    private DateTime _hora = DateTime.Now;
+    private System.Threading.Timer? _reloj;
+
+    private void ReiniciarEscenario()
+    {
+        Diag.Reiniciar();
+    }
+
+    protected override void OnInitialized()
+    {
+        _reloj = new System.Threading.Timer(_ => InvokeAsync(() =>
+        {
+            _hora = DateTime.Now;
+            StateHasChanged();
+        }), null, 1000, 1000);
+    }
+
+    public void Dispose() => _reloj?.Dispose();
+}

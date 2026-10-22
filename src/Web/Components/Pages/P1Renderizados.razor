@@ -1,0 +1,75 @@
+@page "/renderizados"
+@inject PedidosApi Api
+@implements IDisposable
+
+<PageTitle>1 · Renderizados innecesarios</PageTitle>
+
+<h1>1 · Renderizados innecesarios</h1>
+<p class="intro">
+    El padre tiene un reloj que llama a <code>StateHasChanged</code> cada segundo. Las 200 filas son componentes hijos
+    que reciben un <code>Pedido</code> (una clase). Mira la columna <b>renders</b> y el panel.
+</p>
+
+<ModoSelector @bind-Rapido="_rapido"
+              DescripcionLento="El reloj actualiza el componente padre cada segundo y las 200 filas se vuelven a renderizar, aunque sus datos no cambien."
+              DescripcionRapido="ShouldRender compara el Id y la versión del pedido para evitar renderizados sin cambios." />
+
+<p class="barra">
+    <span>🕒 @_hora.ToString("HH:mm:ss")</span>
+    <button @onclick="MarcarEnviado">Marcar el pedido @_pedidos.FirstOrDefault()?.Id como enviado</button>
+    <span class="small muted">(modifica una sola fila: en modo rápido solo esa debe renderizarse de nuevo)</span>
+</p>
+
+@if (_pedidos.Count == 0)
+{
+    <p>Cargando pedidos…</p>
+}
+else
+{
+    <table class="pedidos">
+        <thead>
+            <tr><th>#</th><th>Cliente</th><th>Producto</th><th class="num">Importe</th><th>Estado</th><th class="num">renders</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var pedido in _pedidos)
+            {
+                if (_rapido)
+                {
+                    <FilaPedidoRapida @key="pedido.Id" Pedido="pedido" />
+                }
+                else
+                {
+                    <FilaPedidoLenta @key="pedido.Id" Pedido="pedido" />
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool _rapido;
+    private List<Pedido> _pedidos = new();
+    private DateTime _hora = DateTime.Now;
+    private System.Threading.Timer? _reloj;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pedidos = (await Api.GetPedidosAsync(200)).ToList();
+
+        // El "reloj": el típico componente padre que se actualiza solo (un timer, SignalR, un stream...).
+        _reloj = new System.Threading.Timer(_ => InvokeAsync(() =>
+        {
+            _hora = DateTime.Now;
+            StateHasChanged();
+        }), null, 1000, 1000);
+    }
+
+    private void MarcarEnviado()
+    {
+        var pedido = _pedidos[0];
+        pedido.Estado = EstadoPedido.Enviado;
+        pedido.Version++;            // así la fila rápida sabe que ESTE pedido sí ha cambiado
+    }
+
+    public void Dispose() => _reloj?.Dispose();
+}

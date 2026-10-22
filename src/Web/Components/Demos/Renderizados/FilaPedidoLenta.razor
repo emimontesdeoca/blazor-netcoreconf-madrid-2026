@@ -1,0 +1,24 @@
+@* 🐢 LENTO
+   Una fila normal y corriente. Recibe un Pedido (clase) como parámetro.
+
+   Regla de Blazor: cuando el padre se renderiza, el hijo se vuelve a renderizar salvo que TODOS sus
+   parámetros sean de tipos primitivos/inmutables conocidos (int, string, DateTime, enum...) y no hayan
+   cambiado. Pedido es una clase mutable, así que esta fila se renderiza cada vez que lo hace el padre:
+   con el reloj, las 200 filas se renderizan cada segundo sin que cambien sus datos. *@
+@inject Diagnostico Diag
+@{ _renders++; Diag.Render(nameof(FilaPedidoLenta)); }
+
+<tr>
+    <td>@Pedido.Id</td>
+    <td>@Pedido.Cliente</td>
+    <td>@Pedido.Producto</td>
+    <td class="num">@Pedido.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</td>
+    <td><span class="estado @Pedido.Estado.ToString().ToLowerInvariant()">@Pedido.Estado</span></td>
+    <td class="num"><span class="renders">@_renders</span></td>
+</tr>
+
+@code {
+    [Parameter, EditorRequired] public Pedido Pedido { get; set; } = default!;
+
+    private int _renders;
+}

@@ -1,0 +1,11 @@
+<div class="medidor">
+    <div><span>@(Tiempo is null ? "…" : $"{Tiempo.Value.TotalMilliseconds:N0} ms")</span>hasta primeros datos en DOM</div>
+    <div><span>@(FilasDom is null ? "…" : FilasDom.Value.ToString("N0"))</span>filas DOM (medición inicial)</div>
+    <div><span>@Cargados.ToString("N0")</span>pedidos en el último lote</div>
+</div>
+
+@code {
+    [Parameter] public TimeSpan? Tiempo { get; set; }
+    [Parameter] public int? FilasDom { get; set; }
+    [Parameter] public int Cargados { get; set; }
+}

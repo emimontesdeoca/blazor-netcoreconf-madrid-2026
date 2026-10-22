@@ -1,0 +1,75 @@
+@* ⚡ RÁPIDO
+   Dos técnicas, pocas líneas y ninguna librería:
+
+   1. Debouncing: esperamos 300 ms desde la última tecla antes de llamar. Si llega otra tecla antes,
+      cancelamos la espera. Escribir "martinez" seguido es UNA llamada.
+   2. Cancelación: el mismo CancellationToken se pasa a la API. Si el usuario sigue escribiendo
+      mientras la llamada está en curso, se cancela y no sustituye los resultados de la búsqueda actual.
+      Con HttpClient es igual: GetFromJsonAsync(url, ct).
+
+   Dispose también cancela la operación pendiente cuando el usuario cambia de página. *@
+@inject PedidosApi Api
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(BuscadorRapido)); }
+
+<div class="buscador">
+    <input id="buscador-rapido" placeholder="Cliente o producto…" autocomplete="off"
+           value="@_texto" @oninput="Buscar" />
+    <p class="small">
+        Texto actual: <b>@_texto</b> ·
+        Resultados para: <b class="@(_texto == _textoResultados ? "ok" : "mal")">@_textoResultados</b>
+        @if (_buscando)
+        {
+            <span class="muted"> · buscando…</span>
+        }
+    </p>
+</div>
+
+<ResultadosBusqueda Pedidos="_resultados" />
+
+@code {
+    private const int DebounceMs = 300;
+
+    private string _texto = "";
+    private string _textoResultados = "";
+    private bool _buscando;
+    private IReadOnlyList<Pedido> _resultados = [];
+    private CancellationTokenSource? _cts;
+
+    private async Task Buscar(ChangeEventArgs e)
+    {
+        _texto = e.Value?.ToString() ?? "";
+
+        // Cancela la espera o la llamada en curso antes de iniciar la nueva búsqueda.
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+        var texto = _texto;
+
+        try
+        {
+            await Task.Delay(DebounceMs, ct);              // debounce: ¿ha dejado de escribir?
+            _buscando = true;
+            var resultados = await Api.BuscarAsync(texto, ct);
+            ct.ThrowIfCancellationRequested();
+            _resultados = resultados;
+            _textoResultados = texto;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Había una pulsación más reciente. No hacemos nada: la nueva se encarga.
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested) _buscando = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

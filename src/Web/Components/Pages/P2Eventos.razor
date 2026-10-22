@@ -1,0 +1,35 @@
+@page "/eventos"
+@inject IJSRuntime JS
+
+<PageTitle>2 · Eventos frecuentes</PageTitle>
+
+<h1>2 · Eventos frecuentes</h1>
+<p class="intro">
+    Un buscador con <code>@@oninput</code>. Cada tecla es un evento, y cada evento una llamada a la API.
+    La API tarda 250 ms, salvo «mart», que tarda 1.050 ms: así las respuestas llegan desordenadas de forma reproducible.
+</p>
+
+<ModoSelector @bind-Rapido="_rapido"
+              DescripcionLento="Una llamada por cada tecla, sin cancelar las anteriores. Puede mostrar resultados de una búsqueda anterior."
+              DescripcionRapido="Espera 300 ms desde la última tecla y cancela la búsqueda anterior cuando cambia el texto." />
+
+<p class="barra">
+    <button @onclick="SimularEscritura">⌨️ Escribir «martinez» letra a letra</button>
+    <span class="small muted">(8 teclas, una cada 90 ms; también puedes escribir tú)</span>
+</p>
+
+@if (_rapido)
+{
+    <BuscadorRapido />
+}
+else
+{
+    <BuscadorLento />
+}
+
+@code {
+    private bool _rapido;
+
+    private Task SimularEscritura()
+        => JS.InvokeVoidAsync("diag.escribir", _rapido ? "#buscador-rapido" : "#buscador-lento", "martinez", 90).AsTask();
+}

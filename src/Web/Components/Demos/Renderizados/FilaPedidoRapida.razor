@@ -1,0 +1,37 @@
+@* ⚡ RÁPIDO
+   Solo se renderiza si cambia el Id o la versión del pedido.
+   ShouldRender no se consulta en el primer renderizado.
+
+   Alternativas que también funcionan:
+   - Pasar primitivos (Cliente, Importe, Estado...) en vez del objeto: Blazor sí sabe compararlos.
+   - Sobrescribir SetParametersAsync y comparar a mano.
+   Lo que NO hay que hacer: poner ShouldRender => false "por si acaso" en todos los componentes.
+   Primero mide, luego decide dónde merece la pena. *@
+@inject Diagnostico Diag
+@{ _renders++; Diag.Render(nameof(FilaPedidoRapida)); }
+
+<tr>
+    <td>@Pedido.Id</td>
+    <td>@Pedido.Cliente</td>
+    <td>@Pedido.Producto</td>
+    <td class="num">@Pedido.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</td>
+    <td><span class="estado @Pedido.Estado.ToString().ToLowerInvariant()">@Pedido.Estado</span></td>
+    <td class="num"><span class="renders ok">@_renders</span></td>
+</tr>
+
+@code {
+    [Parameter, EditorRequired] public Pedido Pedido { get; set; } = default!;
+
+    private int _renders;
+    private int _idRenderizado = -1;
+    private int _versionRenderizada = -1;
+
+    protected override bool ShouldRender()
+        => Pedido.Id != _idRenderizado || Pedido.Version != _versionRenderizada;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _idRenderizado = Pedido.Id;
+        _versionRenderizada = Pedido.Version;
+    }
+}

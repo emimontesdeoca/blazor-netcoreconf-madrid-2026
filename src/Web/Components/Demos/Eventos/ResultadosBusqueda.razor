@@ -1,0 +1,36 @@
+@* Lista de resultados compartida por los dos buscadores. *@
+@inject Diagnostico Diag
+@{ Diag.Render(nameof(ResultadosBusqueda)); }
+
+@if (Pedidos.Count == 0)
+{
+    <p class="small muted">Sin resultados.</p>
+}
+else
+{
+    <table class="pedidos">
+        <thead>
+            <tr><th>#</th><th>Cliente</th><th>Producto</th><th class="num">Importe</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Pedidos.Take(20))
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.Cliente</td>
+                    <td>@p.Producto</td>
+                    <td class="num">@p.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</td>
+                    <td><span class="estado @p.Estado.ToString().ToLowerInvariant()">@p.Estado</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    if (Pedidos.Count > 20)
+    {
+        <p class="small muted">Mostrando 20 de @Pedidos.Count.</p>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Pedido> Pedidos { get; set; } = [];
+}

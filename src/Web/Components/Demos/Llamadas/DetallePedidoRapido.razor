@@ -1,0 +1,71 @@
+@* ⚡ RÁPIDO
+   Tres cosas:
+   1. Solo cargamos si PedidoId es distinto del que ya tenemos cargado (o en carga).
+   2. Si cambia el Id durante la carga, cancelamos la anterior para no mostrar datos de otro pedido.
+   3. Dispose cancela la operación pendiente cuando el usuario cambia de página. *@
+@inject PedidosApi Api
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(DetallePedidoRapido)); }
+
+<div class="detalle">
+    @if (_pedido is null)
+    {
+        <p class="muted">Cargando pedido #@PedidoId…</p>
+    }
+    else
+    {
+        <h3>Pedido #@_pedido.Id</h3>
+        <dl>
+            <dt>Cliente</dt><dd>@_pedido.Cliente</dd>
+            <dt>Producto</dt><dd>@_pedido.Producto × @_pedido.Cantidad</dd>
+            <dt>Importe</dt><dd>@_pedido.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</dd>
+            <dt>Fecha</dt><dd>@_pedido.Fecha.ToString("g", CultureInfo.GetCultureInfo("es-ES"))</dd>
+            <dt>Estado</dt><dd><span class="estado @_pedido.Estado.ToString().ToLowerInvariant()">@_pedido.Estado</span></dd>
+            <dt>Cargas</dt><dd><span class="renders ok">@_cargas</span></dd>
+        </dl>
+    }
+    <p class="small muted">@ChildContent</p>
+</div>
+
+@code {
+    [Parameter] public int PedidoId { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private Pedido? _pedido;
+    private int _cargas;
+    private int? _idSolicitado;
+    private Task<Pedido?>? _carga;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (PedidoId == _idSolicitado && _carga is { IsFaulted: false, IsCanceled: false }) return;
+        var id = PedidoId;
+        _idSolicitado = id;
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        try
+        {
+            _cargas++;
+            _carga = Api.GetPedidoAsync(id, ct);
+            var pedido = await _carga;
+            ct.ThrowIfCancellationRequested();
+            _pedido = pedido;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Llegó otro Id antes de terminar: la carga nueva ya está en marcha.
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

@@ -1,0 +1,47 @@
+@* 🐢 LENTO
+   La tabla de 200 filas solo utiliza el filtro, pero recibe todas las notificaciones de OnChange.
+   Añadir al carrito hace que se renderice la tabla sin que hayan cambiado sus datos. *@
+@inject EstadoLento Estado
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(TablaLenta)); }
+
+<div class="tarjeta tabla">
+    <span class="titulo">Pedidos (@Filtrados.Count)</span>
+    <div class="scroll corto">
+        <table class="pedidos">
+            <tbody>
+                @foreach (var p in Filtrados)
+                {
+                    <tr>
+                        <td>@p.Id</td>
+                        <td>@p.Cliente</td>
+                        <td>@p.Producto</td>
+                        <td class="num">@p.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</td>
+                        <td><span class="estado @p.Estado.ToString().ToLowerInvariant()">@p.Estado</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Pedido> Pedidos { get; set; } = [];
+
+    private Action? _handler;
+
+    private IReadOnlyList<Pedido> Filtrados
+        => Estado.Filtro is null ? Pedidos : Pedidos.Where(p => p.Estado == Estado.Filtro).ToList();
+
+    protected override void OnInitialized()
+    {
+        _handler = () => InvokeAsync(StateHasChanged);
+        Estado.OnChange += _handler;
+    }
+
+    public void Dispose()
+    {
+        if (_handler is not null) Estado.OnChange -= _handler;
+    }
+}

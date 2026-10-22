@@ -1,0 +1,16 @@
+@* Interruptor Lento 🐢 / Rápido ⚡ que usan todas las demos. Se usa con @bind-Rapido. *@
+
+<div class="modo">
+    <button class="@(Rapido ? "" : "activo lento")" @onclick="() => Cambiar(false)">🐢 Lento</button>
+    <button class="@(Rapido ? "activo rapido" : "")" @onclick="() => Cambiar(true)">⚡ Rápido</button>
+    <span class="small">@(Rapido ? DescripcionRapido : DescripcionLento)</span>
+</div>
+
+@code {
+    [Parameter] public bool Rapido { get; set; }
+    [Parameter] public EventCallback<bool> RapidoChanged { get; set; }
+    [Parameter] public string? DescripcionLento { get; set; }
+    [Parameter] public string? DescripcionRapido { get; set; }
+
+    private Task Cambiar(bool rapido) => RapidoChanged.InvokeAsync(rapido);
+}

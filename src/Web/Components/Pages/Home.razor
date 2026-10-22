@@ -1,0 +1,62 @@
+@page "/"
+
+<PageTitle>BlazorLento</PageTitle>
+
+<h1>Cinco problemas de rendimiento en una aplicación Blazor</h1>
+
+<p class="intro">
+    Cada página muestra <strong>un error</strong> que hace lenta una app Blazor, con dos implementaciones:
+    <b>Lento 🐢</b> (la implementación con el problema) y <b>Rápido ⚡</b> (la versión corregida).
+    El panel de la izquierda cuenta renders y llamadas a la API: <em>mide antes y después</em>.
+</p>
+
+<table class="indice">
+    <thead>
+        <tr><th>#</th><th>El error</th><th>Cómo se nota</th><th>La técnica</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td><a href="renderizados">Renderizados innecesarios</a></td>
+            <td>Las 200 filas se renderizan cada segundo, aunque sus datos no cambien</td>
+            <td><code>ShouldRender</code>, parámetros bien pensados</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td><a href="eventos">Eventos frecuentes</a></td>
+            <td>Una llamada a la API por cada tecla, y respuestas desordenadas</td>
+            <td>Debouncing + <code>CancellationToken</code></td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td><a href="listas">Listas extensas</a></td>
+            <td>5.000 filas en el DOM para ver 15</td>
+            <td><code>&lt;Virtualize&gt;</code>, <code>ItemsProvider</code></td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td><a href="llamadas">Consultas repetidas del mismo pedido</a></td>
+            <td>El reloj cambia, pero el Id del pedido sigue igual</td>
+            <td>Separar el reloj y recargar solo si cambia el Id</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td><a href="estado">Gestión inadecuada del estado</a></td>
+            <td>Añadir al carrito hace que la tabla se vuelva a renderizar</td>
+            <td>Notificaciones separadas para el carrito y el filtro</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Cómo medir</h2>
+<ul>
+    <li><b>Renders:</b> cada componente de la demo tiene <code>@@{ Diag.Render(nameof(X)); }</code> al principio de su markup. Se ejecuta en cada render, y el panel lo cuenta.</li>
+    <li><b>Llamadas:</b> la API es simulada (<code>PedidosApi</code>) y registra cada llamada, cada cancelación y cuántas hay en curso.</li>
+    <li><b>DOM y tiempos:</b> la demo 3 cuenta solo filas de datos, sin espaciadores. El tiempo incluye la carga y la confirmación desde el navegador; no es CPU de render ni tiempo de pintura.</li>
+    <li><b>En tu app:</b> pestaña <i>Performance</i> y <i>Network</i> del navegador; en Blazor Server, <code>dotnet-counters</code> y los logs de <code>Microsoft.AspNetCore.Components</code>.</li>
+</ul>
+
+<p class="small muted">
+    Charla: <i>Los errores que convierten tu aplicación Blazor en una aplicación lenta</i> · NetCoreConf Madrid 2026 ·
+    Emiliano Montesdeoca (<a href="https://www.linkedin.com/in/emimontesdeoca/">linkedin.com/in/emimontesdeoca</a>)
+</p>

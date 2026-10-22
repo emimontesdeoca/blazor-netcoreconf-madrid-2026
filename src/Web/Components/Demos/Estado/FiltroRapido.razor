@@ -1,0 +1,20 @@
+@* ⚡ RÁPIDO: el selector modifica el filtro y se renderiza por su propio @onchange; no necesita suscribirse. *@
+@inject EstadoRapido Estado
+@inject Diagnostico Diag
+@{ Diag.Render(nameof(FiltroRapido)); }
+
+<div class="tarjeta filtro ok">
+    <span class="titulo">Filtro</span>
+    <select @onchange="Cambiar">
+        <option value="">Todos los estados</option>
+        @foreach (var e in Enum.GetValues<EstadoPedido>())
+        {
+            <option value="@e" selected="@(Estado.Filtro == e)">@e</option>
+        }
+    </select>
+</div>
+
+@code {
+    private void Cambiar(ChangeEventArgs e)
+        => Estado.CambiarFiltro(Enum.TryParse<EstadoPedido>(e.Value?.ToString(), out var f) ? f : null);
+}

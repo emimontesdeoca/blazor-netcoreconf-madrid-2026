@@ -1,0 +1,64 @@
+@inject PedidosApi Api
+@inject IJSRuntime JS
+@inject Diagnostico Diag
+@implements IDisposable
+@{ Diag.Render(nameof(ListaLenta)); }
+
+<Medidor Tiempo="_tiempo" FilasDom="_filasDom" Cargados="_pedidos.Count" />
+
+<div @ref="_lista" id="lista" class="scroll">
+    <table class="pedidos fijas">
+        <thead>
+            <tr><th>#</th><th>Cliente</th><th>Producto</th><th class="num">Cant.</th><th class="num">Importe</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var p in _pedidos)
+            {
+                <tr data-pedido="@p.Id">
+                    <td>@p.Id</td>
+                    <td>@p.Cliente</td>
+                    <td>@p.Producto</td>
+                    <td class="num">@p.Cantidad</td>
+                    <td class="num">@p.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</td>
+                    <td><span class="estado @p.Estado.ToString().ToLowerInvariant()">@p.Estado</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private IReadOnlyList<Pedido> _pedidos = [];
+    private readonly Stopwatch _cronometro = Stopwatch.StartNew();
+    private readonly CancellationTokenSource _cts = new();
+    private ElementReference _lista;
+    private TimeSpan? _tiempo;
+    private int? _filasDom;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _pedidos = await Api.GetPedidosAsync(5000, _cts.Token);
+        }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested) { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _filasDom = await JS.InvokeAsync<int>("diag.medirFilas", _cts.Token, _lista);
+            _tiempo = _cronometro.Elapsed;
+            StateHasChanged();
+        }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested) { }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

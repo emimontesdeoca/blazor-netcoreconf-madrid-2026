@@ -1,0 +1,38 @@
+@* 🐢 LENTO
+   Cada @oninput lanza una llamada a la API con el texto actual. Escribir "martinez" son 8 llamadas.
+   Como no se cancelan las búsquedas anteriores, sus respuestas pueden llegar desordenadas: si la de "mart"
+   tarda más que la de "martinez", los resultados que se quedan en pantalla son los de "mart". *@
+@inject PedidosApi Api
+@inject Diagnostico Diag
+@{ Diag.Render(nameof(BuscadorLento)); }
+
+<div class="buscador">
+    <input id="buscador-lento" placeholder="Cliente o producto…" autocomplete="off"
+           value="@_texto" @oninput="Buscar" />
+    <p class="small">
+        Texto actual: <b>@_texto</b> ·
+        Resultados para: <b class="@(_texto == _textoResultados ? "ok" : "mal")">@_textoResultados</b>
+        @if (_texto != _textoResultados && _textoResultados.Length > 0)
+        {
+            <span class="mal"> ← no coinciden</span>
+        }
+    </p>
+</div>
+
+<ResultadosBusqueda Pedidos="_resultados" />
+
+@code {
+    private string _texto = "";
+    private string _textoResultados = "";
+    private IReadOnlyList<Pedido> _resultados = [];
+
+    private async Task Buscar(ChangeEventArgs e)
+    {
+        _texto = e.Value?.ToString() ?? "";
+        var texto = _texto;
+
+        // Una llamada por pulsación, sin cancelar la anterior.
+        _resultados = await Api.BuscarAsync(texto);
+        _textoResultados = texto;
+    }
+}
