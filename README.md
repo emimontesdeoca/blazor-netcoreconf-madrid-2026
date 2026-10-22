@@ -33,12 +33,15 @@ Abre http://localhost:5100.
 El workflow [deploy-slides.yml](.github/workflows/deploy-slides.yml) publica `slides/deck.html` y sus assets en la raíz de la rama `pages`.
 
 1. En **Settings → Pages**, selecciona **Deploy from a branch**, rama `pages` y carpeta `/(root)`.
-2. Genera el HTML actualizado desde `slides`:
+2. Genera el HTML de Pages y el PDF de descarga desde `slides`:
 
    ```powershell
    Set-Location .\slides
    npx @marp-team/marp-cli deck.md -o deck.html
+   npx @marp-team/marp-cli deck.md --pdf --allow-local-files -o deck.pdf
    ```
+
+   `--allow-local-files` permite incluir las imágenes locales de `assets/` en el PDF.
 
 3. Publica los cambios en `master`; el workflow creará o actualizará la rama `pages`.
 

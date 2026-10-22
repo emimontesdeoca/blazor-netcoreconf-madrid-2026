@@ -316,23 +316,24 @@ Para la versión de 30 minutos, seguir los tiempos de PREPARACION.md.
 
 ## 1. Las filas se renderizan sin haber cambiado
 
+**Padre · el reloj se actualiza cada segundo**
+
 ```razor
-@code {
-    [Parameter, EditorRequired] public Pedido Pedido { get; set; } = default!;
-    private int _renders;
+@foreach (var pedido in _pedidos)
+{
+    <FilaPedidoLenta @key="pedido.Id" Pedido="pedido" />
 }
 ```
 
-El padre se renderiza cada segundo y pasa el mismo `Pedido`, una **clase mutable**.
-Esta fila no evita renderizarse aunque los datos que muestra sigan igual.
+**Hijo** recibe el mismo `Pedido`: el objeto mutable con los datos de una fila.
 
-**Cada segundo se renderizan las 200 filas, aunque sus datos sigan igual.**
+**Las 200 filas se renderizan cada segundo, aunque sus datos no cambien.**
 
 <!--
 TIEMPO: 4:00 – 5:00
 
-La página tiene un reloj que llama a StateHasChanged cada segundo.
-Al renderizarse el padre, Blazor vuelve a pasar el objeto Pedido a cada fila.
+Mostrar el flujo: el reloj actualiza el padre y este vuelve a pasar el mismo Pedido a sus 200 hijos.
+Pedido es el modelo mutable de una fila, no el componente.
 Pasar objetos no es un error por sí mismo. Aquí el problema es repetir
 el renderizado de 200 componentes cuyos datos no han cambiado.
 
@@ -350,9 +351,11 @@ Referencia: https://learn.microsoft.com/aspnet/core/blazor/components/rendering
 
 <!-- _class: transform-after -->
 
-## La fila se actualiza solo si cambia el pedido
+## El mismo hijo solo se actualiza si cambia el pedido
 
 <p class="metric">200 renders/s → 0 · pedido modificado → 1</p>
+
+**Hijo · la misma fila optimizada · el bucle del padre no cambia**
 
 ```csharp
 private int _idRenderizado = -1;
@@ -371,7 +374,7 @@ protected override void OnAfterRender(bool firstRender)
 <!--
 TIEMPO: 5:00 – 8:00
 
-Mostrar el código ANTES y avanzar para transformar el bloque en DESPUÉS.
+Volver al mismo hijo, ahora optimizado; el padre y su bucle no cambian.
 Ruta: /renderizados. Aumentar el zoom para que se lean el panel y los contadores.
 Validación del 21/10: 400 renderizados en dos actualizaciones del reloj;
 0 en Rápido después de reiniciar. Al marcar el pedido, el contador de la
@@ -386,10 +389,11 @@ Si falla la demo, explicar el resultado esperado con este código.
 
 ---
 
-## Qué garantiza esta transformación
+## Qué significan el Id y la versión
 
-- Guarda `Id` y `Version` tras el primer renderizado; por eso la carga inicial se conserva.
-- Incrementa `Version` cuando cambia un dato visible de la fila.
+- `Pedido` es el modelo mutable de una fila: Id, cliente, producto y estado.
+- Al cambiar un dato visible, el padre incrementa `Pedido.Version`.
+- El hijo guarda Id y Version tras renderizarse; solo repite el render si alguno cambia.
 - También puedes pasar **parámetros primitivos** que Blazor compare.
 
 **No usar `ShouldRender => false` como receta general.**
@@ -421,7 +425,9 @@ Leer el prompt como siguiente paso que la audiencia puede aplicar a su propio re
 
 <!-- _class: transform-before -->
 
-## 2. Una llamada a la API por cada tecla
+## 2. Cada tecla del buscador llama a la API
+
+**El input conecta `@oninput="Buscar"` con este método**
 
 ```csharp
 private async Task Buscar(ChangeEventArgs e)
@@ -440,6 +446,7 @@ Una búsqueda anterior puede terminar después y sustituir los resultados actual
 <!--
 TIEMPO: 9:00 – 10:00
 
+Seguir la conexión del input con `@oninput="Buscar"`: cada tecla llama al método.
 Hay dos problemas: se hacen llamadas que no necesitamos y pueden mostrarse
 resultados que ya no corresponden al texto del buscador.
 La API no consulta si el texto está vacío. Por eso, vaciar el campo al iniciar
@@ -456,13 +463,12 @@ La latencia es artificial; no estamos midiendo una API externa.
 
 ## La búsqueda espera y cancela la anterior
 
+**Mismo input · fragmento clave · cada tecla renueva el token**
+
 <p class="metric">8 llamadas → 1 · resultados actuales</p>
 
 ```csharp
 var texto = _texto;
-_cts?.Cancel();
-_cts?.Dispose();
-_cts = new CancellationTokenSource();
 var ct = _cts.Token;
 
 try
@@ -471,7 +477,6 @@ try
     var resultados = await Api.BuscarAsync(texto, ct);
     ct.ThrowIfCancellationRequested();
     _resultados = resultados;
-    _textoResultados = texto;
 }
 catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
 ```
@@ -534,6 +539,8 @@ Insistir en que la IA revise la firma real de la API y el ciclo de vida del comp
 
 ## 3. Cargar 5.000 filas para mostrar unas pocas
 
+**Lista completa · renderiza toda la colección**
+
 ```razor
 @foreach (var p in _pedidos)
 {
@@ -567,6 +574,8 @@ el prerender puede haber enviado el HTML en la respuesta HTTP inicial.
 <!-- _class: transform-after -->
 
 ## La transformación: virtualizar la tabla
+
+**La misma tabla · renderizada con `Virtualize`**
 
 ```razor
 <Virtualize TItem="Pedido" Items="_pedidos" ItemSize="38"
@@ -658,14 +667,16 @@ Recordar: el proveedor solo reduce los datos solicitados si el backend ofrece pa
 
 ## 4. Volver a cargar el mismo pedido
 
+**Padre con reloj → hijo de detalle del pedido**
+
 ```razor
 <DetallePedidoLento PedidoId="_pedidoId">
     Vista actualizada a las @_hora.ToString("HH:mm:ss")
 </DetallePedidoLento>
 ```
 
-El reloj cambia cada segundo, pero el **Id del pedido sigue igual**.
-Al pasar el reloj dentro del detalle, se repite la consulta.
+El padre cambia el reloj cada segundo, pero el **Id del pedido sigue igual**.
+Al pasar ese texto al hijo, se repite la consulta.
 
 <!--
 TIEMPO: 22:00 – 23:00
@@ -679,6 +690,8 @@ Por eso vuelve a ejecutar la carga aunque PedidoId sea el mismo.
 <!-- _class: transform-after -->
 
 ## El reloj fuera; el Id dentro
+
+**Mismo padre · hijo de detalle optimizado**
 
 <p class="metric">mismo Id → 0 llamadas · Id nuevo → 1</p>
 
@@ -720,6 +733,8 @@ TIEMPO: 26:45 – 27:00
 
 ## 5. La tabla se renderiza al cambiar el carrito
 
+**Servicio · un evento avisa a todos los suscriptores**
+
 ```csharp
 public event Action? OnChange;
 
@@ -730,12 +745,12 @@ public void AñadirAlCarrito(int pedidoId)
 }
 ```
 
-Un evento general avisa a todos cuando cambia cualquier dato.
-Al añadir un producto, la tabla se renderiza aunque sus pedidos no cambien.
+Un evento general llega a Carrito, Ofertas, Filtro y Tabla, aunque algunos no usen ese dato.
 
 <!--
 TIEMPO: 27:00 – 28:00
 
+Seguir `OnChange` desde el servicio hasta Carrito, Ofertas, Filtro y Tabla.
 Un evento general puede ser suficiente en una aplicación pequeña.
 El problema aparece cuando muchos componentes se suscriben y se renderizan
 con cada cambio, aunque no utilicen el dato que ha cambiado.
@@ -749,6 +764,8 @@ añadir una biblioteca para resolverlo.
 
 ## Notificar solo el cambio que necesita cada componente
 
+**Servicio · eventos separados por tipo de cambio**
+
 <p class="metric">Añadir: tabla 1 render → 0</p>
 
 ```csharp
@@ -759,12 +776,13 @@ CarritoCambiado?.Invoke(); // Al añadir al carrito
 FiltroCambiado?.Invoke(); // Al cambiar el filtro
 ```
 
+Al añadir: el clic actualiza Ofertas y Carrito. Al filtrar: el selector actualiza Filtro y Tabla.
 La tabla solo escucha a `FiltroCambiado`.
 
 <!--
 TIEMPO: 28:00 – 32:40
 
-Mostrar el código ANTES y avanzar para transformar el bloque en DESPUÉS.
+Comparar las suscripciones: al añadir se actualizan Ofertas y Carrito; al filtrar, Filtro y Tabla.
 Ruta: /estado. Esperar a que aparezcan los componentes antes de reiniciar
 el panel. Hacerlo en ambos modos para comparar la misma acción.
 Validación del 21/10: Añadir en Lento suma un renderizado a cada componente.
