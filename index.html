@@ -2107,14 +2107,14 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="1-las-filas-se-renderizan-sin-haber-cambiado">1. Las filas se renderizan sin haber cambiado</h2>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-razor">@code {
-    [Parameter, EditorRequired] public Pedido Pedido { get; set; } = default!;
-    private int _renders;
+<p><strong>Padre · el reloj se actualiza cada segundo</strong></p>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-razor">@foreach (var pedido in _pedidos)
+{
+    &lt;FilaPedidoLenta @key=&quot;pedido.Id&quot; Pedido=&quot;pedido&quot; /&gt;
 }
 </code></pre>
-<p>El padre se renderiza cada segundo y pasa el mismo <code>Pedido</code>, una <strong>clase mutable</strong>.<br />
-Esta fila no evita renderizarse aunque los datos que muestra sigan igual.</p>
-<p><strong>Cada segundo se renderizan las 200 filas, aunque sus datos sigan igual.</strong></p>
+<p><strong>Hijo</strong> recibe el mismo <code>Pedido</code>: el objeto mutable con los datos de una fila.</p>
+<p><strong>Las 200 filas se renderizan cada segundo, aunque sus datos no cambien.</strong></p>
 <footer>Emiliano Montesdeoca · Rendimiento en Blazor</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" data-paginate="true" data-header="**&amp;lt;NetCoreConf/&amp;gt;**  
@@ -2408,8 +2408,9 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 <header><strong>&lt;NetCoreConf/&gt;</strong><br />
 Madrid ’26</header>
 
-<h2 id="la-fila-se-actualiza-solo-si-cambia-el-pedido">La fila se actualiza solo si cambia el pedido</h2>
+<h2 id="el-mismo-hijo-solo-se-actualiza-si-cambia-el-pedido">El mismo hijo solo se actualiza si cambia el pedido</h2>
 <p class="metric">200 renders/s → 0 · pedido modificado → 1</p>
+<p><strong>Hijo · la misma fila optimizada · el bucle del padre no cambia</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-csharp"><span class="hljs-keyword">private</span> <span class="hljs-built_in">int</span> _idRenderizado = <span class="hljs-number">-1</span>;
 <span class="hljs-keyword">private</span> <span class="hljs-built_in">int</span> _versionRenderizada = <span class="hljs-number">-1</span>;
 
@@ -2714,10 +2715,11 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 ;" data-marpit-pagination-total="32" data-transition-back="{&quot;name&quot;:&quot;fade&quot;,&quot;builtinFallback&quot;:true}" data-transition="{&quot;name&quot;:&quot;fade&quot;,&quot;builtinFallback&quot;:true}" data-size="16:9">
 <header><strong>&lt;NetCoreConf/&gt;</strong><br />
 Madrid ’26</header>
-<h2 id="qu%C3%A9-garantiza-esta-transformaci%C3%B3n">Qué garantiza esta transformación</h2>
+<h2 id="qu%C3%A9-significan-el-id-y-la-versi%C3%B3n">Qué significan el Id y la versión</h2>
 <ul>
-<li>Guarda <code>Id</code> y <code>Version</code> tras el primer renderizado; por eso la carga inicial se conserva.</li>
-<li>Incrementa <code>Version</code> cuando cambia un dato visible de la fila.</li>
+<li><code>Pedido</code> es el modelo mutable de una fila: Id, cliente, producto y estado.</li>
+<li>Al cambiar un dato visible, el padre incrementa <code>Pedido.Version</code>.</li>
+<li>El hijo guarda Id y Version tras renderizarse; solo repite el render si alguno cambia.</li>
 <li>También puedes pasar <strong>parámetros primitivos</strong> que Blazor compare.</li>
 </ul>
 <p><strong>No usar <code>ShouldRender =&gt; false</code> como receta general.</strong></p>
@@ -3311,7 +3313,8 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 <header><strong>&lt;NetCoreConf/&gt;</strong><br />
 Madrid ’26</header>
 
-<h2 id="2-una-llamada-a-la-api-por-cada-tecla">2. Una llamada a la API por cada tecla</h2>
+<h2 id="2-cada-tecla-del-buscador-llama-a-la-api">2. Cada tecla del buscador llama a la API</h2>
+<p><strong>El input conecta <code>@oninput=&quot;Buscar&quot;</code> con este método</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-csharp"><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">async</span> Task <span class="hljs-title">Buscar</span>(<span class="hljs-params">ChangeEventArgs e</span>)</span>
 {
     _texto = e.Value?.ToString() ?? <span class="hljs-string">&quot;&quot;</span>;
@@ -3616,11 +3619,9 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="la-b%C3%BAsqueda-espera-y-cancela-la-anterior">La búsqueda espera y cancela la anterior</h2>
+<p><strong>Mismo input · fragmento clave · cada tecla renueva el token</strong></p>
 <p class="metric">8 llamadas → 1 · resultados actuales</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-csharp"><span class="hljs-keyword">var</span> texto = _texto;
-_cts?.Cancel();
-_cts?.Dispose();
-_cts = <span class="hljs-keyword">new</span> CancellationTokenSource();
 <span class="hljs-keyword">var</span> ct = _cts.Token;
 
 <span class="hljs-keyword">try</span>
@@ -3629,7 +3630,6 @@ _cts = <span class="hljs-keyword">new</span> CancellationTokenSource();
     <span class="hljs-keyword">var</span> resultados = <span class="hljs-keyword">await</span> Api.BuscarAsync(texto, ct);
     ct.ThrowIfCancellationRequested();
     _resultados = resultados;
-    _textoResultados = texto;
 }
 <span class="hljs-keyword">catch</span> (OperationCanceledException) <span class="hljs-keyword">when</span> (ct.IsCancellationRequested) { }
 </code></pre>
@@ -4523,6 +4523,7 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="3-cargar-5000-filas-para-mostrar-unas-pocas">3. Cargar 5.000 filas para mostrar unas pocas</h2>
+<p><strong>Lista completa · renderiza toda la colección</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-razor">@foreach (var p in _pedidos)
 {
     &lt;tr data-pedido=&quot;@p.Id&quot;&gt;
@@ -4831,6 +4832,7 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="la-transformaci%C3%B3n-virtualizar-la-tabla">La transformación: virtualizar la tabla</h2>
+<p><strong>La misma tabla · renderizada con <code>Virtualize</code></strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-razor">&lt;Virtualize TItem=&quot;Pedido&quot; Items=&quot;_pedidos&quot; ItemSize=&quot;38&quot;
             OverscanCount=&quot;5&quot; SpacerElement=&quot;tr&quot; Context=&quot;p&quot;&gt;
     &lt;tr data-pedido=&quot;@p.Id&quot;&gt;
@@ -5755,12 +5757,13 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="4-volver-a-cargar-el-mismo-pedido">4. Volver a cargar el mismo pedido</h2>
+<p><strong>Padre con reloj → hijo de detalle del pedido</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-razor">&lt;DetallePedidoLento PedidoId=&quot;_pedidoId&quot;&gt;
     Vista actualizada a las @_hora.ToString(&quot;HH:mm:ss&quot;)
 &lt;/DetallePedidoLento&gt;
 </code></pre>
-<p>El reloj cambia cada segundo, pero el <strong>Id del pedido sigue igual</strong>.<br />
-Al pasar el reloj dentro del detalle, se repite la consulta.</p>
+<p>El padre cambia el reloj cada segundo, pero el <strong>Id del pedido sigue igual</strong>.<br />
+Al pasar ese texto al hijo, se repite la consulta.</p>
 <footer>Emiliano Montesdeoca · Rendimiento en Blazor</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" data-paginate="true" data-header="**&amp;lt;NetCoreConf/&amp;gt;**  
@@ -6055,6 +6058,7 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="el-reloj-fuera-el-id-dentro">El reloj fuera; el Id dentro</h2>
+<p><strong>Mismo padre · hijo de detalle optimizado</strong></p>
 <p class="metric">mismo Id → 0 llamadas · Id nuevo → 1</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-razor">&lt;p class=&quot;small muted&quot;&gt;
     Vista actualizada a las @_hora.ToString(&quot;HH:mm:ss&quot;)
@@ -6652,6 +6656,7 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="5-la-tabla-se-renderiza-al-cambiar-el-carrito">5. La tabla se renderiza al cambiar el carrito</h2>
+<p><strong>Servicio · un evento avisa a todos los suscriptores</strong></p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-csharp"><span class="hljs-keyword">public</span> <span class="hljs-keyword">event</span> Action? OnChange;
 
 <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> AñadirAlCarrito(<span class="hljs-built_in">int</span> pedidoId)
@@ -6660,8 +6665,7 @@ Madrid ’26</header>
     OnChange?.Invoke();
 }
 </code></pre>
-<p>Un evento general avisa a todos cuando cambia cualquier dato.<br />
-Al añadir un producto, la tabla se renderiza aunque sus pedidos no cambien.</p>
+<p>Un evento general llega a Carrito, Ofertas, Filtro y Tabla, aunque algunos no usen ese dato.</p>
 <footer>Emiliano Montesdeoca · Rendimiento en Blazor</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" data-paginate="true" data-header="**&amp;lt;NetCoreConf/&amp;gt;**  
@@ -6956,6 +6960,7 @@ section blockquote { border-left: 5px solid #72278b; padding-left: 0.7em; color:
 Madrid ’26</header>
 
 <h2 id="notificar-solo-el-cambio-que-necesita-cada-componente">Notificar solo el cambio que necesita cada componente</h2>
+<p><strong>Servicio · eventos separados por tipo de cambio</strong></p>
 <p class="metric">Añadir: tabla 1 render → 0</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-csharp"><span class="hljs-keyword">public</span> <span class="hljs-keyword">event</span> Action? CarritoCambiado;
 <span class="hljs-keyword">public</span> <span class="hljs-keyword">event</span> Action? FiltroCambiado;
@@ -6963,7 +6968,8 @@ Madrid ’26</header>
 CarritoCambiado?.Invoke(); <span class="hljs-comment">// Al añadir al carrito</span>
 FiltroCambiado?.Invoke(); <span class="hljs-comment">// Al cambiar el filtro</span>
 </code></pre>
-<p>La tabla solo escucha a <code>FiltroCambiado</code>.</p>
+<p>Al añadir: el clic actualiza Ofertas y Carrito. Al filtrar: el selector actualiza Filtro y Tabla.<br />
+La tabla solo escucha a <code>FiltroCambiado</code>.</p>
 <footer>Emiliano Montesdeoca · Rendimiento en Blazor</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" data-paginate="true" data-header="**&amp;lt;NetCoreConf/&amp;gt;**  
@@ -9762,8 +9768,8 @@ El panel cuenta renderizados y llamadas. No mide imágenes por segundo.
 En cada demo haremos la misma acción en ambos modos y compararemos los números.
 Para la versión de 30 minutos, seguir los tiempos de PREPARACION.md.</p></div><div class="bespoke-marp-note" data-index="6" tabindex="0"><p>TIEMPO: 4:00 – 5:00
 
-La página tiene un reloj que llama a StateHasChanged cada segundo.
-Al renderizarse el padre, Blazor vuelve a pasar el objeto Pedido a cada fila.
+Mostrar el flujo: el reloj actualiza el padre y este vuelve a pasar el mismo Pedido a sus 200 hijos.
+Pedido es el modelo mutable de una fila, no el componente.
 Pasar objetos no es un error por sí mismo. Aquí el problema es repetir
 el renderizado de 200 componentes cuyos datos no han cambiado.
 
@@ -9776,7 +9782,7 @@ Un manejador asíncrono que queda pendiente suele solicitar uno al devolver
 el control y otro al terminar. Eso no garantiza exactamente dos renderizados.
 Referencia: https://learn.microsoft.com/aspnet/core/blazor/components/rendering</p></div><div class="bespoke-marp-note" data-index="7" tabindex="0"><p>TIEMPO: 5:00 – 8:00
 
-Mostrar el código ANTES y avanzar para transformar el bloque en DESPUÉS.
+Volver al mismo hijo, ahora optimizado; el padre y su bucle no cambian.
 Ruta: /renderizados. Aumentar el zoom para que se lean el panel y los contadores.
 Validación del 21/10: 400 renderizados en dos actualizaciones del reloj;
 0 en Rápido después de reiniciar. Al marcar el pedido, el contador de la
@@ -9795,6 +9801,7 @@ compara esos campos o pasa parámetros primitivos.</p></div><div class="bespoke-
 
 Leer el prompt como siguiente paso que la audiencia puede aplicar a su propio repo.</p></div><div class="bespoke-marp-note" data-index="10" tabindex="0"><p>TIEMPO: 9:00 – 10:00
 
+Seguir la conexión del input con `@oninput=&quot;Buscar&quot;`: cada tecla llama al método.
 Hay dos problemas: se hacen llamadas que no necesitamos y pueden mostrarse
 resultados que ya no corresponden al texto del buscador.
 La API no consulta si el texto está vacío. Por eso, vaciar el campo al iniciar
@@ -9881,13 +9888,14 @@ La hora ahora se representa fuera del componente que carga el pedido.
 El detalle recibe solo el Id, un parámetro primitivo que no cambia con el reloj.
 No abrir ni explicar la implementación interna de cancelación salvo que pregunten.</p></div><div class="bespoke-marp-note" data-index="20" tabindex="0"><p>TIEMPO: 26:45 – 27:00</p></div><div class="bespoke-marp-note" data-index="21" tabindex="0"><p>TIEMPO: 27:00 – 28:00
 
+Seguir `OnChange` desde el servicio hasta Carrito, Ofertas, Filtro y Tabla.
 Un evento general puede ser suficiente en una aplicación pequeña.
 El problema aparece cuando muchos componentes se suscriben y se renderizan
 con cada cambio, aunque no utilicen el dato que ha cambiado.
 Eso no significa que todo estado centralizado sea lento ni que haga falta
 añadir una biblioteca para resolverlo.</p></div><div class="bespoke-marp-note" data-index="22" tabindex="0"><p>TIEMPO: 28:00 – 32:40
 
-Mostrar el código ANTES y avanzar para transformar el bloque en DESPUÉS.
+Comparar las suscripciones: al añadir se actualizan Ofertas y Carrito; al filtrar, Filtro y Tabla.
 Ruta: /estado. Esperar a que aparezcan los componentes antes de reiniciar
 el panel. Hacerlo en ambos modos para comparar la misma acción.
 Validación del 21/10: Añadir en Lento suma un renderizado a cada componente.
