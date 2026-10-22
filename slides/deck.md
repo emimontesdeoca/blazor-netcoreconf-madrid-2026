@@ -2,6 +2,7 @@
 marp: true
 theme: default
 paginate: true
+transition: fade
 size: 16:9
 lang: es
 title: "Los errores que convierten tu aplicación Blazor en una aplicación lenta"
