@@ -128,6 +128,25 @@ style: |
     line-height: 1.22;
     background: #f7f4fa;
   }
+  section.tip-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    text-align: center;
+    background: #160b4b url('assets/netcoreconf-fondo.png') center / cover no-repeat;
+    color: #fff;
+  }
+  section.tip-divider h1 {
+    margin: 0;
+    font-size: 3.2em;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: #fff;
+  }
+  section.tip-divider header,
+  section.tip-divider footer,
+  section.tip-divider::after { display: none; }
   section.bio .bio-layout {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
@@ -183,9 +202,10 @@ NetCoreConf Madrid 2026 · 23 de octubre
 <!--
 TIEMPO: 0:00 – 0:15
 
-32 diapositivas: 30 de contenido y las dos de patrocinadores.
-Objetivo: 35 minutos de contenido, 5 de preguntas y 5 de margen para las
-transiciones y los imprevistos de una sesión de 45 minutos.
+38 diapositivas: 36 de contenido y las dos de patrocinadores.
+Objetivo base: 35 minutos de contenido principal, 5 de preguntas y 5 de margen
+en una sesión de 45 minutos. Los diez tips son opcionales y pueden añadir hasta
+10 minutos; no presentarlos todos sin ajustar el horario.
 Confirmar la duración con la organización antes del último ensayo.
 
 Vamos a ver cinco errores en una aplicación preparada para la charla.
@@ -826,8 +846,22 @@ No recomendar ShouldRender para todos los componentes ni presentar los bucles
 como la única causa de lentitud.
 El panel también tiene un coste; por eso limita sus propias actualizaciones.
 
-Terminar el contenido principal en el minuto 35. Si queda tiempo, usar los cinco
-tips opcionales; si no, saltarlos y pasar directamente a preguntas.
+Terminar el contenido principal en el minuto 35. Si queda tiempo, presentar
+algunos de los diez tips opcionales; para una sesión de 45 minutos, escoger como
+máximo cinco y pasar directamente a preguntas si no alcanza.
+-->
+
+---
+
+<!-- _class: tip-divider -->
+<!-- _paginate: false -->
+
+# ONE MORE TIP
+
+<!--
+TIEMPO OPCIONAL: 0:05
+
+Abrir el bloque de tips opcionales y elegir cuántos presentar según el tiempo.
 -->
 
 ---
@@ -955,8 +989,132 @@ logger.LogInformation(
 <!--
 TIEMPO OPCIONAL: hasta 1 minuto
 
-Estas cinco diapositivas son material de reserva: si vas justo, salta directamente
-a preguntas. Si las presentas, reservar hasta cinco minutos para el bloque.
+Estas diez diapositivas son material de reserva: si vas justo, salta directamente
+a preguntas. Cada tip puede ocupar hasta un minuto; para una sesión de 45 minutos,
+presentar como máximo cinco.
+-->
+
+---
+
+<!-- _class: tip -->
+
+## 6 · Comprime las respuestas HTTP
+
+**Idea:** reduce el tamaño de HTML, CSS, JavaScript y JSON si el hosting no lo hace ya.
+
+- Registra la compresión en servicios.
+- Usa el middleware antes de `UseStaticFiles`.
+- Comprueba `Content-Encoding`; revisa el riesgo antes de comprimir HTTPS.
+
+```csharp
+builder.Services.AddResponseCompression();
+
+app.UseResponseCompression();
+app.UseStaticFiles();
+```
+
+<!--
+TIEMPO OPCIONAL: hasta 1 minuto
+
+La compresión HTTP no controla los WebSockets de SignalR; Interactive Server
+habilita su propia compresión WebSocket por defecto en .NET 10. HTTPS queda
+excluido por defecto del middleware por el riesgo de BREACH.
+-->
+
+---
+
+<!-- _class: tip -->
+
+## 7 · Haz interactivo solo lo necesario
+
+**Idea:** conserva SSR estático y activa Interactive Server solo en las partes que necesitan eventos.
+
+- Menos circuitos SignalR y menos estado en el servidor.
+- Aplica el modo interactivo en componentes concretos.
+- La demo activa la interactividad globalmente por simplicidad.
+
+```razor
+@rendermode InteractiveServer
+```
+
+<!--
+TIEMPO OPCIONAL: hasta 1 minuto
+
+En una app real, reservar el modo interactivo para los componentes que lo
+necesitan. El resto puede servirse como SSR estático.
+-->
+
+---
+
+<!-- _class: tip -->
+
+## 8 · Agrupa las llamadas a JavaScript
+
+**Idea:** en Interactive Server, evita una ida y vuelta por cada elemento.
+
+- No invoques JS dentro de un bucle de filas.
+- Carga el módulo una vez y envía los datos en un lote.
+- Mide la latencia de la interacción completa.
+
+```csharp
+await chartModule.InvokeVoidAsync("update", points);
+```
+
+<!--
+TIEMPO OPCIONAL: hasta 1 minuto
+
+La función JS actualiza un recurso que controla JavaScript, como un canvas;
+no modifiques desde JS el DOM que administra Blazor.
+-->
+
+---
+
+<!-- _class: tip -->
+
+## 9 · Muestra pronto el contenido lento
+
+**Idea:** con SSR, envía el contenido disponible mientras termina el trabajo asíncrono.
+
+- `StreamRendering` muestra primero el shell y el estado de carga.
+- Mejora el tiempo hasta el primer contenido, no el trabajo total.
+- Persiste el estado inicial para no repetir consultas al hidratar.
+
+```razor
+@attribute [StreamRendering]
+```
+
+<!--
+TIEMPO OPCIONAL: hasta 1 minuto
+
+Requiere prerenderizado; esta demo lo desactiva. Si se activa en una app
+interactiva, persistir el resultado de la carga inicial para evitar duplicarla.
+-->
+
+---
+
+<!-- _class: tip -->
+
+## 10 · Controla la memoria de cada circuito
+
+**Idea:** cada pestaña Interactive Server conserva estado en el servidor.
+
+- Evita objetos grandes o sin límite en servicios `Scoped`.
+- Desuscribe eventos y libera timers al salir del componente.
+- Prueba con varios circuitos concurrentes y observa la memoria.
+
+```csharp
+public void Dispose()
+{
+    timer?.Dispose();
+    service.Changed -= OnChanged;
+}
+```
+
+<!--
+TIEMPO OPCIONAL: hasta 1 minuto
+
+El estado Scoped es por circuito, no una caché global. Vigilar también
+suscripciones que mantengan componentes vivos después de navegar.
 -->
 
 ---
@@ -985,7 +1143,8 @@ Agradecer a los patrocinadores antes de abrir las preguntas.
 linkedin.com/in/emimontesdeoca · @emimontesdeocaa
 
 <!--
-TIEMPO: 35:00 – 40:00 si se omiten los tips; 40:00 – 45:00 si se presentan.
+TIEMPO: 35:00 – 40:00 si se omiten los tips; 40:00 – 45:00 si se presentan cinco;
+45:00 – 50:00 si se presentan los diez.
 
 Reservar cinco minutos para preguntas.
 Si se omiten los tips, usar el tiempo restante como margen para preguntas y transiciones.
