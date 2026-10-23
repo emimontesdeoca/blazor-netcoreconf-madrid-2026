@@ -1,14 +1,10 @@
-@* ⚡ RÁPIDO
-   Tres cosas:
-   1. Solo cargamos si PedidoId es distinto del que ya tenemos cargado (o en carga).
-   2. Si cambia el Id durante la carga, cancelamos la anterior para no mostrar datos de otro pedido.
-   3. Dispose cancela la operación pendiente cuando el usuario cambia de página. *@
+@* ⚡ RÁPIDO: solo vuelve a cargar si cambia el Id; la vista compacta no afecta a los datos. *@
 @inject PedidosApi Api
 @inject Diagnostico Diag
 @implements IDisposable
-@{ Diag.Render(nameof(DetallePedidoRapido)); }
+@{ Diag.Render("Detalle"); }
 
-<div class="detalle">
+<div class="detalle @(VistaCompacta ? "compacto" : null)">
     @if (_pedido is null)
     {
         <p class="muted">Cargando pedido #@PedidoId…</p>
@@ -16,21 +12,29 @@
     else
     {
         <h3>Pedido #@_pedido.Id</h3>
-        <dl>
-            <dt>Cliente</dt><dd>@_pedido.Cliente</dd>
-            <dt>Producto</dt><dd>@_pedido.Producto × @_pedido.Cantidad</dd>
-            <dt>Importe</dt><dd>@_pedido.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</dd>
-            <dt>Fecha</dt><dd>@_pedido.Fecha.ToString("g", CultureInfo.GetCultureInfo("es-ES"))</dd>
-            <dt>Estado</dt><dd><span class="estado @_pedido.Estado.ToString().ToLowerInvariant()">@_pedido.Estado</span></dd>
-            <dt>Cargas</dt><dd><span class="renders ok">@_cargas</span></dd>
-        </dl>
+        @if (VistaCompacta)
+        {
+            <p class="detalle-resumen">
+                @_pedido.Cliente · @_pedido.Producto · @_pedido.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))
+            </p>
+        }
+        else
+        {
+            <dl>
+                <dt>Cliente</dt><dd>@_pedido.Cliente</dd>
+                <dt>Producto</dt><dd>@_pedido.Producto × @_pedido.Cantidad</dd>
+                <dt>Importe</dt><dd>@_pedido.Importe.ToString("C", CultureInfo.GetCultureInfo("es-ES"))</dd>
+                <dt>Fecha</dt><dd>@_pedido.Fecha.ToString("g", CultureInfo.GetCultureInfo("es-ES"))</dd>
+                <dt>Estado</dt><dd><span class="estado @_pedido.Estado.ToString().ToLowerInvariant()">@_pedido.Estado</span></dd>
+            </dl>
+        }
+        <p class="small muted">Cargas de datos: @_cargas</p>
     }
-    <p class="small muted">@ChildContent</p>
 </div>
 
 @code {
     [Parameter] public int PedidoId { get; set; }
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool VistaCompacta { get; set; }
 
     private Pedido? _pedido;
     private int _cargas;

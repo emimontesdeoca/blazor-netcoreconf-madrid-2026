@@ -1,16 +1,21 @@
-@* 🐢 LENTO: se suscribe a OnChange (todo el estado). Este sí necesita el carrito, así que no está mal... *@
+@* 🐢 LENTO: el evento global también actualiza la tabla. *@
 @inject EstadoLento Estado
 @inject Diagnostico Diag
 @implements IDisposable
-@{ Diag.Render(nameof(CarritoLento)); }
+@{ Diag.Render("Carrito"); }
 
 <div class="tarjeta carrito">
     <span class="titulo">🛒 Carrito</span>
     <span class="valor">@Estado.Carrito.Count</span>
+    <button @onclick="Añadir">Añadir pedido #@PedidoId</button>
 </div>
 
 @code {
+    [Parameter] public int PedidoId { get; set; }
+
     private Action? _handler;
+
+    private void Añadir() => Estado.AñadirAlCarrito(PedidoId);
 
     protected override void OnInitialized()
     {

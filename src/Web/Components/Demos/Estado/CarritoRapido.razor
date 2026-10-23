@@ -1,16 +1,21 @@
-@* ⚡ RÁPIDO: recibe notificaciones de CarritoCambiado, pero no de FiltroCambiado. *@
+@* ⚡ RÁPIDO: solo recibe notificaciones del carrito. *@
 @inject EstadoRapido Estado
 @inject Diagnostico Diag
 @implements IDisposable
-@{ Diag.Render(nameof(CarritoRapido)); }
+@{ Diag.Render("Carrito"); }
 
 <div class="tarjeta carrito ok">
     <span class="titulo">🛒 Carrito</span>
     <span class="valor">@Estado.Carrito.Count</span>
+    <button @onclick="Añadir">Añadir pedido #@PedidoId</button>
 </div>
 
 @code {
+    [Parameter] public int PedidoId { get; set; }
+
     private Action? _handler;
+
+    private void Añadir() => Estado.AñadirAlCarrito(PedidoId);
 
     protected override void OnInitialized()
     {

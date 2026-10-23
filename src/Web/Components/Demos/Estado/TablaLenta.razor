@@ -1,17 +1,32 @@
 @* 🐢 LENTO
-   La tabla de 200 filas solo utiliza el filtro, pero recibe todas las notificaciones de OnChange.
-   Añadir al carrito hace que se renderice la tabla sin que hayan cambiado sus datos. *@
+   La tabla usa el filtro, pero también recibe las notificaciones del carrito. *@
 @inject EstadoLento Estado
 @inject Diagnostico Diag
 @implements IDisposable
-@{ Diag.Render(nameof(TablaLenta)); }
+@{
+    Diag.Render("Tabla");
+    IReadOnlyList<Pedido> filtrados = Estado.Filtro is null
+        ? Pedidos
+        : Pedidos.Where(p => p.Estado == Estado.Filtro).ToList();
+}
 
 <div class="tarjeta tabla">
-    <span class="titulo">Pedidos (@Filtrados.Count)</span>
+    <div class="tabla-cabecera">
+        <span class="titulo">Pedidos (@filtrados.Count)</span>
+        <label>Estado
+            <select @onchange="CambiarFiltro">
+                <option value="" selected="@(Estado.Filtro is null)">Todos</option>
+                @foreach (var estado in Enum.GetValues<EstadoPedido>())
+                {
+                    <option value="@estado" selected="@(Estado.Filtro == estado)">@estado</option>
+                }
+            </select>
+        </label>
+    </div>
     <div class="scroll corto">
         <table class="pedidos">
             <tbody>
-                @foreach (var p in Filtrados)
+                @foreach (var p in filtrados)
                 {
                     <tr>
                         <td>@p.Id</td>
@@ -31,8 +46,8 @@
 
     private Action? _handler;
 
-    private IReadOnlyList<Pedido> Filtrados
-        => Estado.Filtro is null ? Pedidos : Pedidos.Where(p => p.Estado == Estado.Filtro).ToList();
+    private void CambiarFiltro(ChangeEventArgs e)
+        => Estado.CambiarFiltro(Enum.TryParse<EstadoPedido>(e.Value?.ToString(), out var filtro) ? filtro : null);
 
     protected override void OnInitialized()
     {

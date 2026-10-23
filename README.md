@@ -13,8 +13,8 @@ El sitio estará disponible cuando GitHub Pages esté habilitado y el repositori
 | `/renderizados` | Evitar que filas sin cambios vuelvan a renderizarse |
 | `/eventos` | Reducir búsquedas con debounce y cancelación |
 | `/listas` | Mostrar listas extensas con virtualización y carga bajo demanda |
-| `/llamadas` | No repetir la consulta cuando el Id no cambia |
-| `/estado` | Notificar solo a los componentes afectados |
+| `/llamadas` | Cambiar la vista sin repetir la consulta del pedido |
+| `/estado` | Evitar que el carrito vuelva a renderizar la tabla |
 
 La aplicación usa datos ficticios y una API simulada; no necesita base de datos ni servicios externos.
 

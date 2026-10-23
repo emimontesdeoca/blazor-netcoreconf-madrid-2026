@@ -1,44 +1,44 @@
 @page "/estado"
 @inject PedidosApi Api
+@inject Diagnostico Diag
 
-<PageTitle>5 · Gestión del estado</PageTitle>
+<PageTitle>5 · El carrito no debería renderizar la tabla</PageTitle>
 
-<h1>5 · Gestión inadecuada del estado</h1>
+<h1>5 · Añadir al carrito no debería renderizar la tabla</h1>
 <p class="intro">
-    Cuatro componentes comparten un estado: el <b>carrito</b> y el <b>filtro</b> de la tabla.
-    Pulsa «Añadir» en las ofertas y observa en el panel qué componentes se renderizan. La tabla tiene 200 filas y no utiliza los datos del carrito.
+    Dos componentes comparten estado: el <b>carrito</b> y el <b>filtro de la tabla</b>.
+    Añade un pedido y observa los renders. La tabla no usa los datos del carrito.
 </p>
 
-<ModoSelector @bind-Rapido="_rapido"
-              DescripcionLento="Un solo evento OnChange notifica todos los cambios. Añadir al carrito también provoca el renderizado de la tabla."
-              DescripcionRapido="Cada componente se suscribe solo a los datos que utiliza. El que recibe el clic o el cambio del selector también se renderiza." />
+<ModoSelector @bind-Rapido="_rapido" @bind-Rapido:after="ReiniciarEscenario"
+              DescripcionLento="Un evento general notifica al carrito y a la tabla. Añadir al carrito vuelve a renderizar ambos."
+              DescripcionRapido="El carrito solo notifica al carrito; el filtro solo actualiza la tabla." />
 
 @if (_pedidos.Count == 0)
 {
     <p>Cargando pedidos…</p>
 }
-else if (_rapido)
-{
-    <div class="estado-demo">
-        <CarritoRapido />
-        <OfertasRapidas Pedidos="_pedidos" />
-        <FiltroRapido />
-        <TablaRapida Pedidos="_pedidos" />
-    </div>
-}
 else
 {
     <div class="estado-demo">
-        <CarritoLento />
-        <OfertasLentas Pedidos="_pedidos" />
-        <FiltroLento />
-        <TablaLenta Pedidos="_pedidos" />
+        @if (_rapido)
+        {
+            <CarritoRapido PedidoId="@_pedidos[0].Id" />
+            <TablaRapida Pedidos="_pedidos" />
+        }
+        else
+        {
+            <CarritoLento PedidoId="@_pedidos[0].Id" />
+            <TablaLenta Pedidos="_pedidos" />
+        }
     </div>
 }
 
 @code {
     private bool _rapido;
     private IReadOnlyList<Pedido> _pedidos = [];
+
+    private void ReiniciarEscenario() => Diag.Reiniciar();
 
     protected override async Task OnInitializedAsync()
         => _pedidos = await Api.GetPedidosAsync(200);

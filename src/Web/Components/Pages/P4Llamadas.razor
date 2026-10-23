@@ -1,22 +1,20 @@
 @page "/llamadas"
-@implements IDisposable
 @inject Diagnostico Diag
 
-<PageTitle>4 · Consultas repetidas del mismo pedido</PageTitle>
+<PageTitle>4 · Cambiar la vista sin repetir la consulta</PageTitle>
 
-<h1>4 · Consultas repetidas del mismo pedido</h1>
+<h1>4 · Cambiar la vista no debe repetir la consulta</h1>
 <p class="intro">
-    El reloj del padre se actualiza cada segundo. En la versión lenta, ese texto viaja dentro del detalle
-    y provoca otra consulta, aunque el pedido no cambie. Compara el contador de <b>llamadas API</b>.
+    Cambia entre la vista completa y compacta. El aspecto cambia, pero el pedido es el mismo:
+    en modo rápido solo se consulta la API al seleccionar otro pedido.
 </p>
 
 <ModoSelector @bind-Rapido="_rapido" @bind-Rapido:after="ReiniciarEscenario"
-              DescripcionLento="La hora forma parte del detalle. Cada segundo cambia el contenido y el detalle vuelve a consultar el mismo pedido."
-              DescripcionRapido="La hora se muestra fuera del detalle. Este solo recibe el Id y no vuelve a consultar si no cambia." />
+              DescripcionLento="Cada cambio de parámetro vuelve a consultar el pedido, aunque solo cambie la presentación."
+              DescripcionRapido="La presentación cambia sin consultar de nuevo. Solo se carga el pedido si cambia su Id." />
 
 <section>
     <p class="barra">
-        <span>🕒 @_hora.ToString("HH:mm:ss")</span>
         <label>Pedido:
             <select @bind="_pedidoId">
                 @for (var id = 1; id <= 10; id++)
@@ -25,40 +23,25 @@
                 }
             </select>
         </label>
-        <span class="small muted">(el reloj hace que el componente padre se renderice cada segundo)</span>
+        <label class="opcion-vista">
+            <input type="checkbox" @bind="_vistaCompacta" />
+            Vista compacta
+        </label>
     </p>
     @if (_rapido)
     {
-        <p class="small muted">Vista actualizada a las @_hora.ToString("HH:mm:ss")</p>
-        <DetallePedidoRapido PedidoId="_pedidoId" />
+        <DetallePedidoRapido PedidoId="_pedidoId" VistaCompacta="_vistaCompacta" />
     }
     else
     {
-        <DetallePedidoLento PedidoId="_pedidoId">
-            Vista actualizada a las @_hora.ToString("HH:mm:ss")
-        </DetallePedidoLento>
+        <DetallePedidoLento PedidoId="_pedidoId" VistaCompacta="_vistaCompacta" />
     }
 </section>
 
 @code {
     private bool _rapido;
     private int _pedidoId = 1;
-    private DateTime _hora = DateTime.Now;
-    private System.Threading.Timer? _reloj;
+    private bool _vistaCompacta;
 
-    private void ReiniciarEscenario()
-    {
-        Diag.Reiniciar();
-    }
-
-    protected override void OnInitialized()
-    {
-        _reloj = new System.Threading.Timer(_ => InvokeAsync(() =>
-        {
-            _hora = DateTime.Now;
-            StateHasChanged();
-        }), null, 1000, 1000);
-    }
-
-    public void Dispose() => _reloj?.Dispose();
+    private void ReiniciarEscenario() => Diag.Reiniciar();
 }

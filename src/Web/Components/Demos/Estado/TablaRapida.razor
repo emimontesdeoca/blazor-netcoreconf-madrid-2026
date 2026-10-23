@@ -1,17 +1,32 @@
 @* ⚡ RÁPIDO
-   La misma tabla, suscrita SOLO a FiltroCambiado. Añadir al carrito no la toca.
-   Además cachea la lista filtrada: calcularla en la propiedad en cada render era otro coste escondido. *@
+   La tabla solo recibe cambios del filtro; añadir al carrito no la actualiza. *@
 @inject EstadoRapido Estado
 @inject Diagnostico Diag
 @implements IDisposable
-@{ Diag.Render(nameof(TablaRapida)); }
+@{
+    Diag.Render("Tabla");
+    IReadOnlyList<Pedido> filtrados = Estado.Filtro is null
+        ? Pedidos
+        : Pedidos.Where(p => p.Estado == Estado.Filtro).ToList();
+}
 
 <div class="tarjeta tabla ok">
-    <span class="titulo">Pedidos (@_filtrados.Count)</span>
+    <div class="tabla-cabecera">
+        <span class="titulo">Pedidos (@filtrados.Count)</span>
+        <label>Estado
+            <select @onchange="CambiarFiltro">
+                <option value="" selected="@(Estado.Filtro is null)">Todos</option>
+                @foreach (var estado in Enum.GetValues<EstadoPedido>())
+                {
+                    <option value="@estado" selected="@(Estado.Filtro == estado)">@estado</option>
+                }
+            </select>
+        </label>
+    </div>
     <div class="scroll corto">
         <table class="pedidos">
             <tbody>
-                @foreach (var p in _filtrados)
+                @foreach (var p in filtrados)
                 {
                     <tr>
                         <td>@p.Id</td>
@@ -29,23 +44,16 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<Pedido> Pedidos { get; set; } = [];
 
-    private IReadOnlyList<Pedido> _filtrados = [];
     private Action? _handler;
+
+    private void CambiarFiltro(ChangeEventArgs e)
+        => Estado.CambiarFiltro(Enum.TryParse<EstadoPedido>(e.Value?.ToString(), out var filtro) ? filtro : null);
 
     protected override void OnInitialized()
     {
-        _handler = () => InvokeAsync(() =>
-        {
-            Filtrar();
-            StateHasChanged();
-        });
+        _handler = () => InvokeAsync(StateHasChanged);
         Estado.FiltroCambiado += _handler;
     }
-
-    protected override void OnParametersSet() => Filtrar();
-
-    private void Filtrar()
-        => _filtrados = Estado.Filtro is null ? Pedidos : Pedidos.Where(p => p.Estado == Estado.Filtro).ToList();
 
     public void Dispose()
     {

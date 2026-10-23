@@ -103,9 +103,13 @@ table.indice th { background: var(--fondo); color: var(--morado); }
 
 /* Detalle y widgets (demo 4) */
 .detalle { background: var(--fondo); border-radius: 8px; padding: 0.8rem 1.2rem; max-width: 520px; }
+.detalle.compacto { max-width: 360px; }
 .detalle dl { display: grid; grid-template-columns: 7em 1fr; gap: 0.25rem 0.8rem; margin: 0; }
 .detalle dt { color: var(--gris); }
 .detalle dd { margin: 0; }
+.detalle-resumen { margin: 0; }
+.detalle .small { margin: 0.6rem 0 0; }
+.opcion-vista { display: inline-flex; align-items: center; gap: 0.35rem; }
 .widgets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; max-width: 900px; }
 .widget { background: var(--fondo); border-radius: 8px; padding: 0.8rem 1rem; border-top: 4px solid var(--lento); }
 .widget.ok { border-top-color: var(--rapido); }
@@ -113,12 +117,14 @@ table.indice th { background: var(--fondo); color: var(--morado); }
 .widget .valor, .tarjeta .valor { display: block; font-size: 1.4rem; font-weight: 700; color: var(--morado); }
 
 /* Estado (demo 5) */
-.estado-demo { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 0.8rem; max-width: 1000px; }
+.estado-demo { display: grid; grid-template-columns: minmax(14rem, 1fr) minmax(0, 2fr); align-items: start; gap: 0.8rem; max-width: 1000px; }
 .tarjeta { background: var(--fondo); border-radius: 8px; padding: 0.8rem 1rem; border-top: 4px solid var(--lento); }
 .tarjeta.ok { border-top-color: var(--rapido); }
-.tarjeta.ofertas { display: flex; flex-direction: column; gap: 0.4rem; }
-.tarjeta.ofertas .titulo { margin-bottom: 0; }
-.tarjeta.tabla { grid-column: 1 / -1; }
+.tarjeta.carrito button { margin-top: 0.6rem; }
+.tarjeta.tabla { min-width: 0; }
+.tabla-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; margin-bottom: 0.5rem; }
+.tabla-cabecera .titulo { margin-bottom: 0; }
+.tabla-cabecera label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
 .tarjeta.tabla table.pedidos td { padding: 0.25rem 0.5rem; }
 
 /* Panel de diagnóstico */
@@ -143,4 +149,5 @@ table.indice th { background: var(--fondo); color: var(--morado); }
     .sidebar { position: static; height: auto; }
     .diag { margin-top: 0.8rem; max-height: 45vh; }
     main { padding: 1.25rem; }
+    .estado-demo { grid-template-columns: minmax(0, 1fr); }
 }

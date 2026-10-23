@@ -294,7 +294,7 @@ visitas posteriores. No cambia el modo de un componente que ya está abierto.
 1. Las filas **se renderizan aunque sus datos no cambien**.
 2. El buscador llama a la API **con cada tecla**.
 3. La tabla carga **miles de filas que no se ven**.
-4. Varios componentes **repiten la misma consulta**.
+4. Cambiar la vista **vuelve a consultar el mismo pedido**.
 5. Añadir al carrito **hace que la tabla se vuelva a renderizar**.
 
 <!--
@@ -316,7 +316,7 @@ Para la versión de 30 minutos, seguir los tiempos de PREPARACION.md.
 
 ## 1. Las filas se renderizan sin haber cambiado
 
-**Padre · el reloj se actualiza cada segundo**
+**Cada segundo, el padre se actualiza y vuelve a pasar cada pedido a su fila:**
 
 ```razor
 @foreach (var pedido in _pedidos)
@@ -325,7 +325,7 @@ Para la versión de 30 minutos, seguir los tiempos de PREPARACION.md.
 }
 ```
 
-**Hijo** recibe el mismo `Pedido`: el objeto mutable con los datos de una fila.
+Cada fila recibe el mismo `Pedido`, el objeto con sus datos.
 
 **Las 200 filas se renderizan cada segundo, aunque sus datos no cambien.**
 
@@ -353,9 +353,9 @@ Referencia: https://learn.microsoft.com/aspnet/core/blazor/components/rendering
 
 ## El mismo hijo solo se actualiza si cambia el pedido
 
-<p class="metric">200 renders/s → 0 · pedido modificado → 1</p>
+<p class="metric">Ahora solo se actualiza la fila que cambia.</p>
 
-**Hijo · la misma fila optimizada · el bucle del padre no cambia**
+**La misma fila comprueba si su pedido ha cambiado; el padre sigue igual:**
 
 ```csharp
 private int _idRenderizado = -1;
@@ -427,7 +427,7 @@ Leer el prompt como siguiente paso que la audiencia puede aplicar a su propio re
 
 ## 2. Cada tecla del buscador llama a la API
 
-**El input conecta `@oninput="Buscar"` con este método**
+**Cada tecla del input llama a este método con `@oninput`:**
 
 ```csharp
 private async Task Buscar(ChangeEventArgs e)
@@ -439,7 +439,7 @@ private async Task Buscar(ChangeEventArgs e)
 }
 ```
 
-`@oninput` + **martinez** = **8 llamadas**.
+Escribir «martinez» hace **8 llamadas** a la API.
 
 Una búsqueda anterior puede terminar después y sustituir los resultados actuales.
 
@@ -463,9 +463,9 @@ La latencia es artificial; no estamos midiendo una API externa.
 
 ## La búsqueda espera y cancela la anterior
 
-**Mismo input · fragmento clave · cada tecla renueva el token**
+<p class="metric">Escribir «martinez» hace una sola llamada.</p>
 
-<p class="metric">8 llamadas → 1 · resultados actuales</p>
+**Espera a que dejes de escribir y cancela la búsqueda anterior:**
 
 ```csharp
 var texto = _texto;
@@ -539,7 +539,7 @@ Insistir en que la IA revise la firma real de la API y el ciclo de vida del comp
 
 ## 3. Cargar 5.000 filas para mostrar unas pocas
 
-**Lista completa · renderiza toda la colección**
+**La tabla renderiza todos los pedidos, aunque solo se vean unos pocos:**
 
 ```razor
 @foreach (var p in _pedidos)
@@ -555,7 +555,7 @@ Insistir en que la IA revise la firma real de la API y el ciclo de vida del comp
 }
 ```
 
-**5.000 filas × 6 celdas = 30.000 celdas.**
+**5.000 filas con 6 celdas cada una: 30.000 celdas en la página.**
 
 El contenedor solo muestra unas **15 filas** a la vez.
 
@@ -575,7 +575,7 @@ el prerender puede haber enviado el HTML en la respuesta HTTP inicial.
 
 ## La transformación: virtualizar la tabla
 
-**La misma tabla · renderizada con `Virtualize`**
+**La misma tabla con `Virtualize`:**
 
 ```razor
 <Virtualize TItem="Pedido" Items="_pedidos" ItemSize="38"
@@ -591,7 +591,7 @@ el prerender puede haber enviado el HTML en la respuesta HTTP inicial.
 </Virtualize>
 ```
 
-<p class="metric">5.000 filas → visibles + margen</p>
+<p class="metric">Solo se renderizan las filas que ves.</p>
 
 <!--
 TIEMPO: 16:00 – 21:00
@@ -665,53 +665,46 @@ Recordar: el proveedor solo reduce los datos solicitados si el backend ofrece pa
 
 <!-- _class: transform-before -->
 
-## 4. Volver a cargar el mismo pedido
+## 4. Cambiar la vista vuelve a consultar el pedido
 
-**Padre con reloj → hijo de detalle del pedido**
+**El detalle recibe el Id del pedido y si se muestra en vista compacta:**
 
-```razor
-<DetallePedidoLento PedidoId="_pedidoId">
-    Vista actualizada a las @_hora.ToString("HH:mm:ss")
-</DetallePedidoLento>
+```csharp
+protected override async Task OnParametersSetAsync()
+    => _pedido = await Api.GetPedidoAsync(PedidoId);
 ```
 
-El padre cambia el reloj cada segundo, pero el **Id del pedido sigue igual**.
-Al pasar ese texto al hijo, se repite la consulta.
+Activas la vista compacta del pedido 1… **y se vuelve a pedir el pedido 1 a la API.**
 
 <!--
 TIEMPO: 22:00 – 23:00
 
-El componente lento recibe también el texto del reloj, que cambia cada segundo.
-Por eso vuelve a ejecutar la carga aunque PedidoId sea el mismo.
+En /llamadas, cambiar Vista compacta en Lento y observar el contador de llamadas.
+El Id se queda en #1, pero cada cambio de presentación vuelve a consultar.
 -->
 
 ---
 
 <!-- _class: transform-after -->
 
-## El reloj fuera; el Id dentro
+## Consultar solo si cambia el Id
 
-**Mismo padre · hijo de detalle optimizado**
+<p class="metric">Cambiar la vista ya no llama a la API. Elegir otro pedido, sí.</p>
 
-<p class="metric">mismo Id → 0 llamadas · Id nuevo → 1</p>
-
-```razor
-<p class="small muted">
-    Vista actualizada a las @_hora.ToString("HH:mm:ss")
-</p>
-<DetallePedidoRapido PedidoId="_pedidoId" />
+```csharp
+if (PedidoId != _idSolicitado)
+{
+    _idSolicitado = PedidoId;
+    _pedido = await Api.GetPedidoAsync(PedidoId);
+}
 ```
 
 <!--
 TIEMPO: 23:00 – 26:45
 
-Mostrar el código ANTES y avanzar para transformar el bloque en DESPUÉS.
-Ruta: /llamadas. En Lento, esperar dos cambios del reloj y observar las llamadas.
-Cambiar a Rápido, reiniciar el panel: la hora sigue avanzando, pero el contador
-no aumenta. Cambiar el pedido: se hace una llamada para el nuevo Id.
-
-La hora ahora se representa fuera del componente que carga el pedido.
-El detalle recibe solo el Id, un parámetro primitivo que no cambia con el reloj.
+Cambiar a Rápido; el panel se reinicia. Activar y desactivar Vista compacta:
+la presentación cambia, pero no aumenta el contador de llamadas.
+Seleccionar otro pedido: se hace una llamada para el nuevo Id.
 No abrir ni explicar la implementación interna de cancelación salvo que pregunten.
 -->
 
@@ -721,7 +714,7 @@ No abrir ni explicar la implementación interna de cancelación salvo que pregun
 
 ## Copia este prompt
 
-> Revisa esta página Blazor: un texto del reloj cambia cada segundo dentro de un componente que carga un pedido. Separa ese texto del detalle para que el componente reciba solo el Id. Verifica que los cambios del reloj no vuelvan a llamar a la API y que cambiar el Id sí cargue el pedido nuevo. Haz el cambio mínimo y conserva la cancelación si se cambia de Id durante una carga.
+> Revisa este detalle Blazor: recibe `PedidoId` y `VistaCompacta`, pero vuelve a llamar a la API en cada `OnParametersSetAsync`. Cambia la lógica para consultar solo cuando cambia `PedidoId`. Conserva el cambio de presentación y la cancelación si el Id cambia durante una carga. Verifica que cambiar la vista no llama a la API y que seleccionar otro pedido sí.
 
 <!--
 TIEMPO: 26:45 – 27:00
@@ -731,9 +724,9 @@ TIEMPO: 26:45 – 27:00
 
 <!-- _class: transform-before -->
 
-## 5. La tabla se renderiza al cambiar el carrito
+## 5. Añadir al carrito también renderiza la tabla
 
-**Servicio · un evento avisa a todos los suscriptores**
+**Cuando cambia el carrito, se avisa a todos los componentes:**
 
 ```csharp
 public event Action? OnChange;
@@ -745,12 +738,13 @@ public void AñadirAlCarrito(int pedidoId)
 }
 ```
 
-Un evento general llega a Carrito, Ofertas, Filtro y Tabla, aunque algunos no usen ese dato.
+El carrito y la tabla reciben el aviso, **pero la tabla no usa los datos del carrito.**
 
 <!--
 TIEMPO: 27:00 – 28:00
 
-Seguir `OnChange` desde el servicio hasta Carrito, Ofertas, Filtro y Tabla.
+En /estado, añadir el pedido #1 y observar los renders del Carrito y la Tabla.
+El evento de carrito también renderiza la Tabla, aunque sus filas no cambian.
 Un evento general puede ser suficiente en una aplicación pequeña.
 El problema aparece cuando muchos componentes se suscriben y se renderizan
 con cada cambio, aunque no utilicen el dato que ha cambiado.
@@ -762,11 +756,9 @@ añadir una biblioteca para resolverlo.
 
 <!-- _class: transform-after -->
 
-## Notificar solo el cambio que necesita cada componente
+## Notificar solo al componente afectado
 
-**Servicio · eventos separados por tipo de cambio**
-
-<p class="metric">Añadir: tabla 1 render → 0</p>
+<p class="metric">Al añadir al carrito, la tabla ya no se vuelve a renderizar.</p>
 
 ```csharp
 public event Action? CarritoCambiado;
@@ -776,19 +768,12 @@ CarritoCambiado?.Invoke(); // Al añadir al carrito
 FiltroCambiado?.Invoke(); // Al cambiar el filtro
 ```
 
-Al añadir: el clic actualiza Ofertas y Carrito. Al filtrar: el selector actualiza Filtro y Tabla.
-La tabla solo escucha a `FiltroCambiado`.
-
 <!--
 TIEMPO: 28:00 – 32:40
 
-Comparar las suscripciones: al añadir se actualizan Ofertas y Carrito; al filtrar, Filtro y Tabla.
-Ruta: /estado. Esperar a que aparezcan los componentes antes de reiniciar
-el panel. Hacerlo en ambos modos para comparar la misma acción.
-Validación del 21/10: Añadir en Lento suma un renderizado a cada componente.
-En Rápido suma uno al carrito y otro a las ofertas, pero no a la tabla ni al filtro.
-Al cambiar el filtro, la tabla sí se actualiza.
-Evitar detalles sobre el caché del filtro, lambdas e `InvokeAsync` salvo que pregunten.
+Cambiar a Rápido; el panel se reinicia. Añadir el pedido: solo aumenta el render
+del Carrito. Cambiar el filtro: solo aumenta el render de la Tabla.
+Evitar detalles sobre lambdas e `InvokeAsync` salvo que pregunten.
 -->
 
 ---
@@ -797,7 +782,7 @@ Evitar detalles sobre el caché del filtro, lambdas e `InvokeAsync` salvo que pr
 
 ## Copia este prompt
 
-> Al añadir un producto al carrito, la tabla de pedidos también se renderiza, aunque no usa el carrito. Cambia lo mínimo para que carrito y filtro tengan notificaciones separadas y la tabla escuche solo al filtro. Conserva la desuscripción en `Dispose` y comprueba que Añadir no actualiza la tabla, pero cambiar el filtro sí.
+> En este demo Blazor, el Carrito y la Tabla se suscriben al mismo evento general. Añadir un pedido al carrito hace que la Tabla se renderice, aunque sus filas no cambien. Separa las notificaciones para que el Carrito escuche los cambios del carrito y la Tabla los del filtro. Comprueba que añadir no renderiza la Tabla y que cambiar el filtro sí.
 
 <!--
 TIEMPO: 32:40 – 33:00
@@ -812,8 +797,8 @@ TIEMPO: 32:40 – 33:00
 | ¿Se renderiza sin cambios? | Parámetros y `ShouldRender` | Renderizados |
 | ¿Busco con cada tecla? | Debounce y cancelación | Llamadas |
 | ¿Renderizo filas que no se ven? | `Virtualize` y paginación | Filas y lotes |
-| ¿Vuelve a cambiar el Id? | Parámetros estables | Llamadas repetidas |
-| ¿Qué componentes deben actualizarse? | Suscripciones de estado | Componentes afectados |
+| ¿Cambiar la vista repite la consulta? | Cargar según el Id | Llamadas |
+| ¿Qué componentes usan el dato cambiado? | Notificaciones específicas | Renders por componente |
 
 **No hace falta optimizarlo todo, sino corregir lo que está causando la lentitud.**
 
