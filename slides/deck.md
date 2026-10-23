@@ -202,7 +202,7 @@ Agradecer a los patrocinadores antes de empezar la charla.
   <div class="bio-copy">
     <ul>
       <li>No he estado nunca en la cárcel</li>
-      <li>Papá y felizmente casado</li>
+      <li>Soy de Uruguay, pero muy canario</li>
       <li>Cloud Solutions Team Lead · Intelequia</li>
       <li>Microsoft MVP en Developer Technologies desde 2022</li>
       <li>Blogger / intento de influencer</li>
@@ -214,7 +214,7 @@ Agradecer a los patrocinadores antes de empezar la charla.
       <img class="mvp" src="assets/microsoft-mvp.png" alt="Microsoft MVP">
     </div>
   </div>
-  <img class="bio-photo" src="assets/profile.jpeg" alt="Emi con su familia">
+  <img class="bio-photo" src="https://avatars.githubusercontent.com/u/13499480?v=4" alt="Foto de perfil de Emi">
 </div>
 
 <!--
