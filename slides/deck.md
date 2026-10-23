@@ -75,11 +75,26 @@ style: |
     font-size: 0.55em;
     letter-spacing: 0.08em;
   }
+  section.prompt {
+    display: flex;
+    flex-direction: column;
+  }
+  section.prompt h2 { margin-bottom: 0.3em; }
   section.prompt blockquote {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
     background: #f7f4fa;
-    padding: 0.75em 1em;
-    font-size: 0.86em;
+    padding: 0.9em 1em;
+    font-size: 1.2em;
     line-height: 1.35;
+  }
+  section.prompt blockquote p {
+    margin: 0;
   }
   section.tip {
     display: grid;
